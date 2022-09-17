@@ -28,38 +28,51 @@ typedef struct
     int shared_var;
 } myStruct;
 
+
 int main(){
 
     sem_t *sem1 = NULL, *sem2 = NULL;
+    myStruct *s;
 
     sem1 = sem_open(SEM_NAME_1, O_CREAT | O_EXCL, S_IRUSR | S_IWUSR, 0);
-    sem2 = sem_open(SEM_NAME_2, O_CREAT | O_EXCL, S_IRUSR | S_IWUSR, 0);
+    sem2 = sem_open(SEM_NAME_2, O_CREAT | O_EXCL, S_IRUSR | S_IWUSR, 1);
 
     int fd_shm = shm_open(SHM_SEMS, O_RDWR | O_CREAT | O_EXCL, S_IRUSR | S_IWUSR);
 
-    ftruncate(fd_shm, sizeof(myStruct));
+    ftruncate(fd_shm, sizeof(myStruct)*5);
 
-    myStruct *s = mmap(NULL, sizeof(s), PROT_READ | PROT_WRITE, MAP_SHARED, fd_shm, 0);
+    s = mmap(NULL, sizeof(myStruct)*5, PROT_READ | PROT_WRITE, MAP_SHARED, fd_shm, 0);
 
-    s->shared_var = 0;
+    int i;
+	for(i=0; i<5; i++)
+    	s[i].shared_var = i*3;
 
-    printf("Proceso 1: %d\n", s->shared_var);
-    s->shared_var = 40;
-    sem_post(sem1);
-    sem_wait(sem2);
-    printf("Proceso 1: %d\n", s->shared_var);
-    s->shared_var = 12;
-    sem_post(sem1);
+    for(i=0; i<5; i += 2) {
+        sem_wait(sem2);
+        printf("Proceso 1: %d\n", s[i].shared_var );
+        sleep(1);
+        sem_post(sem1);
+    }
+
+    //s[0].shared_var = 0;
+
+    // printf("Proceso 1: %d\n", s[0].shared_var);
+    // s[0].shared_var = 40;
+    // sem_post(sem1);
+    // sem_wait(sem2);
+    // printf("Proceso 1: %d\n", s[0].shared_var);
+    // s[0].shared_var = 12;
+    // sem_post(sem1);
 
     sem_close(sem1);
     sem_close(sem2);
 
-    munmap(s, sizeof(myStruct));
+    munmap(s, sizeof(myStruct)*5);
 
     sem_unlink(SEM_NAME_1);
     sem_unlink(SEM_NAME_2);
 
-    munmap(s, sizeof(myStruct));
+    munmap(s, sizeof(myStruct)*5);
 
     shm_unlink(SHM_SEMS);
 

@@ -31,6 +31,7 @@ typedef struct
 
 int main()
 {
+
     sem_t *sem1 = NULL, *sem2 = NULL;
 
     int fd_shm = shm_open(SHM_SEMS, O_RDWR | O_EXCL, S_IRUSR | S_IWUSR);
@@ -38,17 +39,24 @@ int main()
     sem1 = sem_open(SEM_NAME_1, O_RDWR);
     sem2 = sem_open(SEM_NAME_2, O_RDWR);
 
+    myStruct *s = mmap(NULL, sizeof(myStruct)*5, PROT_READ | PROT_WRITE, MAP_SHARED, fd_shm, 0);
 
-    myStruct *s = mmap(NULL, sizeof(s), PROT_READ | PROT_WRITE, MAP_SHARED, fd_shm, 0);
-
-    sem_wait(sem1);
-    printf("Proceso 2: %d\n", s->shared_var);
-    s->shared_var = 15;
-    sleep(2);
-    sem_post(sem2);
-    sem_wait(sem1);
-    sleep(2);
-    printf("Proceso 2: %d\n", s->shared_var);
+    int i;
+    for (i = 1; i < 5; i += 2)
+    {
+        sem_wait(sem1);
+        printf("Proceso 2: %d\n", s[i].shared_var);
+        sleep(1);
+        sem_post(sem2);
+    }
+    // sem_wait(sem1);
+    // printf("Proceso 2: %d\n", s[0].shared_var);
+    // s[0].shared_var = 15;
+    // sleep(2);
+    // sem_post(sem2);
+    // sem_wait(sem1);
+    // sleep(2);
+    // printf("Proceso 2: %d\n", s[0].shared_var);
 
     wait(NULL);
 
@@ -58,7 +66,7 @@ int main()
     sem_unlink(SEM_NAME_1);
     sem_unlink(SEM_NAME_2);
 
-    munmap(s, sizeof(myStruct));
+    munmap(s, sizeof(myStruct)*5);
 
     return 0;
 }
