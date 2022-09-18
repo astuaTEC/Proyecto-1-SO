@@ -52,7 +52,7 @@ int main()
 
     pixelInfo *pixels = mmap(NULL, sizeof(pixelInfo)*length, PROT_READ | PROT_WRITE, MAP_SHARED, fd_shm, 0);
 
-    int limitIterations = 2; // chunk iterations
+    int limitIterations = 1; // chunk iterations
     int counter = 1; // aux counter to verify iterations
 
     int i;
