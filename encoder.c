@@ -51,18 +51,25 @@ int main(){
 
     pixels = mmap(NULL, sizeof(pixelInfo)*5, PROT_READ | PROT_WRITE, MAP_SHARED, fd_shm, 0);
 
-    int i;
     time_t t;   // not a primitive datatype
     time(&t);
-	for(i=0; i<5; i++){
-        pixels[i].value = i*3;
-        strcpy(pixels[i].date, ctime(&t));
-    }
+    int r; //random num
     	
+    int limitIterations = 2; // chunk iterations
+    int counter = 1; // aux counter to verify iterations
 
-    for(i=0; i<5; i += 2) {
+    int i;
+    for(i=0; i<5; i++) {
         sem_wait(sem2);
-        printf("Proceso 1: %d\n", pixels[i].value);
+        printf("Proceso 1: Escribo un valor\n");
+        r = rand() % 256;
+        pixels[i].value = r;
+        pixels[i].index = i;
+        strcpy(pixels[i].date, ctime(&t));
+        if( i == 4 && counter < limitIterations ){ // returns to the beginning of the array
+            i = -1;  // reset the counter
+            counter++; //update aux counter
+        }
         sleep(1);
         sem_post(sem1);
     }

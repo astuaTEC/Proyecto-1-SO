@@ -52,12 +52,20 @@ int main()
 
     pixelInfo *pixels = mmap(NULL, sizeof(pixelInfo)*length, PROT_READ | PROT_WRITE, MAP_SHARED, fd_shm, 0);
 
+    int limitIterations = 2; // chunk iterations
+    int counter = 1; // aux counter to verify iterations
+
     int i;
-    for (i = 1; i < 5; i += 2)
+    for (i = 0; i < 5; i++)
     {
         sem_wait(sem1);
-        printf("Proceso 2: %s\n", pixels[i].date);
-        printf("Proceso 2: %d\n", pixels[i].value);
+        printf("Date: %s\n", pixels[i].date);
+        printf("Value: %d\n", pixels[i].value);
+        printf("Index: %d\n", pixels[i].index);
+        if( i == 4 && counter < limitIterations ){
+            i = -1;
+            counter++;
+        }
         sleep(1);
         sem_post(sem2);
     }
