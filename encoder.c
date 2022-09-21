@@ -42,8 +42,8 @@ int main(){
     sem_unlink(SEM_NAME_2);
     shm_unlink(SHM_SEMS);
 
-    sem1 = sem_open(SEM_NAME_1, O_CREAT | O_EXCL, S_IRUSR | S_IWUSR, 0);
-    sem2 = sem_open(SEM_NAME_2, O_CREAT | O_EXCL, S_IRUSR | S_IWUSR, 5);
+    sem1 = sem_open(SEM_NAME_1, O_CREAT | O_EXCL, S_IRUSR | S_IWUSR, 0); // llenos
+    sem2 = sem_open(SEM_NAME_2, O_CREAT | O_EXCL, S_IRUSR | S_IWUSR, 5); // huecos
 
     int fd_shm = shm_open(SHM_SEMS, O_RDWR | O_CREAT | O_EXCL, S_IRUSR | S_IWUSR);
 
@@ -59,19 +59,20 @@ int main(){
 
     int i;
     for(i=0; i<5; i++) {
-        sem_wait(sem2);
+        sem_wait(sem2); // down a un hueco
         printf("Proceso 1: Escribo un valor\n");
         r = rand() % 256;
         pixels[i].value = r;
         pixels[i].index = i;
         time(&t);
         strcpy(pixels[i].date, ctime(&t));
+        sem_post(sem1); // up a un lleno
         if( i == 4 && counter < limitIterations ){ // returns to the beginning of the array
             i = -1;  // reset the counter
             counter++; //update aux counter
         }
         sleep(1);
-        sem_post(sem1);
+        
     }
 
     sem_close(sem1);

@@ -40,8 +40,8 @@ int main()
 
     int fd_shm = shm_open(SHM_SEMS, O_RDWR | O_EXCL, S_IRUSR | S_IWUSR);
 
-    sem1 = sem_open(SEM_NAME_1, O_RDWR);
-    sem2 = sem_open(SEM_NAME_2, O_RDWR);
+    sem1 = sem_open(SEM_NAME_1, O_RDWR); // llenos
+    sem2 = sem_open(SEM_NAME_2, O_RDWR); // huecos
 
     // Get shared memory size
     struct stat buf;
@@ -52,22 +52,22 @@ int main()
 
     pixelInfo *pixels = mmap(NULL, sizeof(pixelInfo)*length, PROT_READ | PROT_WRITE, MAP_SHARED, fd_shm, 0);
 
-    int limitIterations = 1; // chunk iterations
+    int limitIterations = 2; // chunk iterations
     int counter = 1; // aux counter to verify iterations
 
     int i;
     for (i = 0; i < 5; i++)
     {
-        sem_wait(sem1);
+        sem_wait(sem1); // down a un lleno
         printf("Date: %s\n", pixels[i].date);
         printf("Value: %d\n", pixels[i].value);
         printf("Index: %d\n", pixels[i].index);
+        sem_post(sem2); // up a un hueco
         if( i == 4 && counter < limitIterations ){
             i = -1;
             counter++;
         }
         sleep(1);
-        sem_post(sem2);
     }
 
     wait(NULL);
