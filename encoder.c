@@ -52,7 +52,6 @@ int main(){
     pixels = mmap(NULL, sizeof(pixelInfo)*5, PROT_READ | PROT_WRITE, MAP_SHARED, fd_shm, 0);
 
     time_t t;   // not a primitive datatype
-    time(&t);
     int r; //random num
     	
     int limitIterations = 2; // chunk iterations
@@ -65,6 +64,7 @@ int main(){
         r = rand() % 256;
         pixels[i].value = r;
         pixels[i].index = i;
+        time(&t);
         strcpy(pixels[i].date, ctime(&t));
         if( i == 4 && counter < limitIterations ){ // returns to the beginning of the array
             i = -1;  // reset the counter
