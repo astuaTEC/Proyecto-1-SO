@@ -38,35 +38,35 @@ int main(){
     sem_t *llenos = NULL, *huecos = NULL;
     pixelInfo *pixels;
 
-    // sem_unlink(SEM_NAME_1);
-    // sem_unlink(SEM_NAME_2);
-    shm_unlink(SHM_SEMS);
-
     llenos = sem_open(SEM_NAME_1, O_CREAT | O_EXCL, S_IRUSR | S_IWUSR, 0); // llenos
     huecos = sem_open(SEM_NAME_2, O_CREAT | O_EXCL, S_IRUSR | S_IWUSR, 5); // huecos
 
     if(llenos == SEM_FAILED || huecos == SEM_FAILED){
-        printf("Hay que accederlos nada mas");
+        printf("Access the semaphores...\n");
         llenos = sem_open(SEM_NAME_1, O_RDWR); // llenos
         huecos = sem_open(SEM_NAME_2, O_RDWR); // huecos
     }
 
-    int fd_shm = shm_open(SHM_SEMS, O_RDWR | O_CREAT | O_EXCL, S_IRUSR | S_IWUSR);
+    int fd_shm = shm_open(SHM_SEMS, O_RDWR | O_EXCL, S_IRUSR | S_IWUSR);
 
-    ftruncate(fd_shm, sizeof(pixelInfo)*5); // Array de structs tamaño 5
+    if(fd_shm == -1){
+        printf("Create the shared memory...\n");
+        fd_shm = shm_open(SHM_SEMS, O_RDWR | O_CREAT | O_EXCL, S_IRUSR | S_IWUSR);
+        ftruncate(fd_shm, sizeof(pixelInfo)*5); // Array de structs tamaño 5
+    }
 
     pixels = mmap(NULL, sizeof(pixelInfo)*5, PROT_READ | PROT_WRITE, MAP_SHARED, fd_shm, 0);
 
     time_t t;   // not a primitive datatype
     int r; //random num
     	
-    int limitIterations = 2; // chunk iterations
+    int limitIterations = 10; // chunk iterations
     int counter = 1; // aux counter to verify iterations
 
     int i;
     for(i=0; i<5; i++) {
         sem_wait(huecos); // down a un hueco
-        printf("Proceso 1: Escribo un valor\n");
+        printf("Encoder: Escribo un valor\n");
         r = rand() % 256;
         pixels[i].value = r;
         pixels[i].index = i;
@@ -81,15 +81,15 @@ int main(){
         
     }
 
-    sem_close(llenos);
-    sem_close(huecos);
+    // sem_close(llenos);
+    // sem_close(huecos);
 
-    sem_unlink(SEM_NAME_1);
-    sem_unlink(SEM_NAME_2);
+    // sem_unlink(SEM_NAME_1);
+    // sem_unlink(SEM_NAME_2);
 
     munmap(pixels, sizeof(pixelInfo)*5);
 
-    shm_unlink(SHM_SEMS);
+    //shm_unlink(SHM_SEMS);
 
     return 0;
 }
