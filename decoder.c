@@ -19,8 +19,8 @@
 // For killing the child process
 #include <sys/wait.h>
 
-#define SEM_NAME_1 "/sem_1"
-#define SEM_NAME_2 "/sem_2"
+#define SEM_NAME_1 "/llenos"
+#define SEM_NAME_2 "/huecos"
 
 
 #define SHM_SEMS "sems_shared_memory"
@@ -35,13 +35,18 @@ typedef struct
 int main()
 {
 
-    sem_t *sem1 = NULL, *sem2 = NULL;
+    sem_t *llenos = NULL, *huecos = NULL;
 
 
     int fd_shm = shm_open(SHM_SEMS, O_RDWR | O_EXCL, S_IRUSR | S_IWUSR);
 
-    sem1 = sem_open(SEM_NAME_1, O_RDWR); // llenos
-    sem2 = sem_open(SEM_NAME_2, O_RDWR); // huecos
+    llenos = sem_open(SEM_NAME_1, O_RDWR); // llenos
+    huecos = sem_open(SEM_NAME_2, O_RDWR); // huecos
+
+    if(llenos == SEM_FAILED || huecos == SEM_FAILED || fd_shm == -1){
+        printf("Please, create a encoder first...\n");
+        return -1;
+    }
 
     // Get shared memory size
     struct stat buf;
@@ -58,11 +63,11 @@ int main()
     int i;
     for (i = 0; i < 5; i++)
     {
-        sem_wait(sem1); // down a un lleno
+        sem_wait(llenos); // down a un lleno
         printf("Date: %s\n", pixels[i].date);
         printf("Value: %d\n", pixels[i].value);
         printf("Index: %d\n", pixels[i].index);
-        sem_post(sem2); // up a un hueco
+        sem_post(huecos); // up a un hueco
         if( i == 4 && counter < limitIterations ){
             i = -1;
             counter++;
@@ -72,8 +77,8 @@ int main()
 
     wait(NULL);
 
-    sem_close(sem1);
-    sem_close(sem2);
+    sem_close(llenos);
+    sem_close(huecos);
 
     sem_unlink(SEM_NAME_1);
     sem_unlink(SEM_NAME_2);

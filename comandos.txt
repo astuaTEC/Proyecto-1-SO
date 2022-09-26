@@ -1,0 +1,8 @@
+Para la imagen
+
+gcc -Wall -I/usr/local/include -c img2matrix.c
+
+gcc -L/usr/local/lib img2matrix.o -lgsl -lgslcblas -lm -o img2matrix.out
+
+sudo apt-get install libgsl-dev
+sudo apt install libstb-dev

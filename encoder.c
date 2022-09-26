@@ -20,8 +20,8 @@
 // For killing the child process
 #include <sys/wait.h>
 
-#define SEM_NAME_1 "/sem_1"
-#define SEM_NAME_2 "/sem_2"
+#define SEM_NAME_1 "/llenos"
+#define SEM_NAME_2 "/huecos"
 
 #define SHM_SEMS "sems_shared_memory"
 
@@ -35,15 +35,21 @@ typedef struct
 
 int main(){
 
-    sem_t *sem1 = NULL, *sem2 = NULL;
+    sem_t *llenos = NULL, *huecos = NULL;
     pixelInfo *pixels;
 
-    sem_unlink(SEM_NAME_1);
-    sem_unlink(SEM_NAME_2);
+    // sem_unlink(SEM_NAME_1);
+    // sem_unlink(SEM_NAME_2);
     shm_unlink(SHM_SEMS);
 
-    sem1 = sem_open(SEM_NAME_1, O_CREAT | O_EXCL, S_IRUSR | S_IWUSR, 0); // llenos
-    sem2 = sem_open(SEM_NAME_2, O_CREAT | O_EXCL, S_IRUSR | S_IWUSR, 5); // huecos
+    llenos = sem_open(SEM_NAME_1, O_CREAT | O_EXCL, S_IRUSR | S_IWUSR, 0); // llenos
+    huecos = sem_open(SEM_NAME_2, O_CREAT | O_EXCL, S_IRUSR | S_IWUSR, 5); // huecos
+
+    if(llenos == SEM_FAILED || huecos == SEM_FAILED){
+        printf("Hay que accederlos nada mas");
+        llenos = sem_open(SEM_NAME_1, O_RDWR); // llenos
+        huecos = sem_open(SEM_NAME_2, O_RDWR); // huecos
+    }
 
     int fd_shm = shm_open(SHM_SEMS, O_RDWR | O_CREAT | O_EXCL, S_IRUSR | S_IWUSR);
 
@@ -59,14 +65,14 @@ int main(){
 
     int i;
     for(i=0; i<5; i++) {
-        sem_wait(sem2); // down a un hueco
+        sem_wait(huecos); // down a un hueco
         printf("Proceso 1: Escribo un valor\n");
         r = rand() % 256;
         pixels[i].value = r;
         pixels[i].index = i;
         time(&t);
         strcpy(pixels[i].date, ctime(&t));
-        sem_post(sem1); // up a un lleno
+        sem_post(llenos); // up a un lleno
         if( i == 4 && counter < limitIterations ){ // returns to the beginning of the array
             i = -1;  // reset the counter
             counter++; //update aux counter
@@ -75,8 +81,8 @@ int main(){
         
     }
 
-    sem_close(sem1);
-    sem_close(sem2);
+    sem_close(llenos);
+    sem_close(huecos);
 
     sem_unlink(SEM_NAME_1);
     sem_unlink(SEM_NAME_2);
