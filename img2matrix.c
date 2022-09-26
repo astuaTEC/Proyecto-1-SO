@@ -1,11 +1,15 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include <stdio.h>
+#include <stdio.h>
 #include <stdint.h>
 #include <stddef.h>
 #include <stdbool.h>
 #include <gsl/gsl_sf.h>
 #include "stb_image.h"
 #define STB_IMAGE_WRITE_IMPLEMENTATION
+
+typedef unsigned char U8;
+typedef struct { U8 p[4]; } color;
 
 // https://cboard.cprogramming.com/c-programming/178564-loading-image-matrix.html
  
@@ -21,6 +25,44 @@ void image2matrix(gsl_matrix * matrix, unsigned char *image, int width,
   }
  
 };
+
+// https://stackoverflow.com/questions/58544166/converting-2d-array-into-a-greyscale-image-in-c
+void save(char* file_name, gsl_matrix * m)
+{
+
+    FILE* f = fopen(file_name, "wb");
+
+    int width = m->size2;
+    int height = m->size1;
+
+    color tablo_color[255];
+    for (int i = 0; i < 256; i++){
+        tablo_color[i] = ( (color){ (U8)i,(U8)i,(U8)i,(U8)255 } );//BGRA 32 bit
+    }
+       
+
+
+    U8 pp[54] = { 'B', 'M', 0, 0, 0, 0, 0, 0, 0, 0, 54, 0, 0, 0 ,
+                     40, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 32 };
+    *(int*)(pp + 2) = 54 + 4 * width * height;  //file size
+    *(int*)(pp + 18) = width;
+    *(int*)(pp + 22) = height;
+    *(int*)(pp + 42) = height * width * 4;      //bitmap size
+    fwrite(pp, 1, 54, f);
+
+
+    for (int i = height - 1; i >= 0; i--)
+    {
+        for (int j = 0; j < width; j++)
+        {
+            U8 indis = gsl_matrix_get(m, i, j);
+            fwrite(tablo_color+indis, 4, 1, f);
+        }
+    }
+
+    fclose(f);
+
+}
  
 int main()
 {
@@ -67,8 +109,10 @@ int main()
   image2matrix(matrix, image_r, width, height);
 
   char *filename = "img.txt";
-  FILE *fp = fopen(filename, "w");
+  FILE *fp = fopen(filename, "wb");
   print_matrix(fp, matrix);
+
+  save("myImg.bmp", matrix);
  
   // FREE ALL
   printf("Free All:\n");
