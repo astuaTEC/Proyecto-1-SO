@@ -1,11 +1,5 @@
 #define STB_IMAGE_IMPLEMENTATION
-#include <stdio.h>
-#include <stdio.h>
-#include <stdint.h>
-#include <stddef.h>
-#include <stdbool.h>
-#include <gsl/gsl_sf.h>
-#include "stb_image.h"
+#include "img2matrix.h"
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 
 typedef unsigned char U8;
@@ -61,16 +55,57 @@ void save(char* file_name, gsl_matrix * m)
     fclose(f);
 
 }
+
+int print_matrix(FILE * f, const gsl_matrix * m)
+{
+  int status, n = 0;
  
-int main()
+  for (size_t i = 0; i < m->size1; i++) {
+    for (size_t j = 0; j < m->size2; j++) {
+      if ((status = fprintf(f, "%g ", gsl_matrix_get(m, i, j))) < 0)
+        return -1;
+      n += status;
+    }
+ 
+    if ((status = fprintf(f, "\n")) < 0)
+      return -1;
+    n += status;
+  }
+ 
+  return n;
+ 
+}
+
+void slice_image(unsigned char *from_image, unsigned char *to_image, int width,
+                 int height, int original_channels, int target_channel)
+{
+  unsigned char *p;
+  for (int j = 0; j < height; j++) {
+    for (int k = 0; k < width; k++) {
+      p = &from_image[original_channels * (j * width + k)];
+      to_image[(j * width + k)] = p[target_channel];
+ 
+      //printf("%u\n", p[target_channel]);
+    }
+    //printf("\n");
+  }
+};
+ 
+gsl_matrix * getMatrixFromImage(const char *imgName)
 {
   printf("Starting\n");
  
   // Load Image
   int width, height, channels;
  
-  const char path[] =
-      "../imgs/img1-bw.jpg";
+  char path[50];
+  bzero(path, 50);
+
+  strcat(path, "../imgs/");
+  strcat(path, imgName);
+
+  printf("%s\n", path);
+
   unsigned char *image = stbi_load(path,
                                    &width,
                                    &height,
@@ -106,53 +141,18 @@ int main()
   printf("Image to Matrix:\n");
   image2matrix(matrix, image_r, width, height);
 
-  char *filename = "img.txt";
-  FILE *fp = fopen(filename, "wb");
-  print_matrix(fp, matrix);
+  // char *filename = "img.txt";
+  // FILE *fp = fopen(filename, "wb");
+  // print_matrix(fp, matrix);
 
-  save("myImg.jpg", matrix);
+  // save("myImg.jpg", matrix);
  
   // FREE ALL
   printf("Free All:\n");
-  gsl_matrix_free(matrix);
+  //gsl_matrix_free(matrix);
   free(image_r);
   stbi_image_free(image);
   printf("Finished\n");
  
-  return 0;
-}
- 
-void slice_image(unsigned char *from_image, unsigned char *to_image, int width,
-                 int height, int original_channels, int target_channel)
-{
-  unsigned char *p;
-  for (int j = 0; j < height; j++) {
-    for (int k = 0; k < width; k++) {
-      p = &from_image[original_channels * (j * width + k)];
-      to_image[(j * width + k)] = p[target_channel];
- 
-      //printf("%u\n", p[target_channel]);
-    }
-    //printf("\n");
-  }
-};
- 
-int print_matrix(FILE * f, const gsl_matrix * m)
-{
-  int status, n = 0;
- 
-  for (size_t i = 0; i < m->size1; i++) {
-    for (size_t j = 0; j < m->size2; j++) {
-      if ((status = fprintf(f, "%g ", gsl_matrix_get(m, i, j))) < 0)
-        return -1;
-      n += status;
-    }
- 
-    if ((status = fprintf(f, "\n")) < 0)
-      return -1;
-    n += status;
-  }
- 
-  return n;
- 
+  return matrix;
 }

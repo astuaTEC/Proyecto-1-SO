@@ -30,13 +30,13 @@ typedef struct
     int value;
     int index;
     char date[25];
+    int finalPixel;
+    char imgName[20];
 } pixelInfo;
 
 int main()
 {
-
     sem_t *llenos = NULL, *huecos = NULL;
-
 
     int fd_shm = shm_open(SHM_SEMS, O_RDWR | O_EXCL, S_IRUSR | S_IWUSR);
 
@@ -57,33 +57,28 @@ int main()
 
     pixelInfo *pixels = mmap(NULL, sizeof(pixelInfo)*length, PROT_READ | PROT_WRITE, MAP_SHARED, fd_shm, 0);
 
-    int limitIterations = 10; // chunk iterations
-    int counter = 1; // aux counter to verify iterations
-
-    int i;
-    for (i = 0; i < 5; i++)
+    int i = 0;
+    while (1)
     {
         sem_wait(llenos); // down a un lleno
         printf("Decoder: Leo un valor\n");
         printf("Date: %s", pixels[i].date);
         printf("Value: %d\n", pixels[i].value);
         printf("Index: %d\n", pixels[i].index);
+        printf("Img Name: %s\n", pixels[i].imgName);
         printf("-----------------------------\n");
         sem_post(huecos); // up a un hueco
-        if( i == 4 && counter < limitIterations ){
-            i = -1;
-            counter++;
+        if(pixels[i].finalPixel == 1){ //verify the end of the image
+            break;
         }
-        sleep(1);
+        if( i == length - 1){
+            i = -1;
+        }
+        i++;
+        sleep(0.5);
     }
 
     wait(NULL);
-
-    // sem_close(llenos);
-    // sem_close(huecos);
-
-    // sem_unlink(SEM_NAME_1);
-    // sem_unlink(SEM_NAME_2);
 
     munmap(pixels, sizeof(pixelInfo)*5);
 

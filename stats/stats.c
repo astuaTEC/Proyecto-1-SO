@@ -30,6 +30,8 @@ typedef struct
     int value;
     int index;
     char date[25];
+    int finalPixel;
+    char imgName[20];
 } pixelInfo;
 
 
