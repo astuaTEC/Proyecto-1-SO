@@ -47,11 +47,6 @@ int main(){
         return 0;
     }
 
-    // Get shared memory size
-    struct stat buf;
-    fstat(fd_shm, &buf);
-    int length = (int) (buf.st_size / sizeof(pixelInfo));
-
     sem_close(llenos);
     sem_close(huecos);
 

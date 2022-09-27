@@ -35,10 +35,10 @@ typedef struct
 
 int main(int argc, char *argv[]){
 
-    if(argc < 3){
-        perror("Missing arguments");
-        return 1;
-    }
+    // if(argc < 3){
+    //     perror("Missing arguments");
+    //     return 1;
+    // }
 
     sem_t *llenos = NULL, *huecos = NULL;
     pixelInfo *pixels;

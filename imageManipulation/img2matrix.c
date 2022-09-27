@@ -38,9 +38,7 @@ void save(char* file_name, gsl_matrix * m)
     color tablo_color[255];
     for (int i = 0; i < 256; i++){
         tablo_color[i] = ( (color){ (U8)i,(U8)i,(U8)i,(U8)255 } );//BGRA 32 bit
-    }
-       
-
+    }    
 
     U8 pp[54] = { 'B', 'M', 0, 0, 0, 0, 0, 0, 0, 0, 54, 0, 0, 0 ,
                      40, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 32 };
@@ -112,7 +110,7 @@ int main()
   FILE *fp = fopen(filename, "wb");
   print_matrix(fp, matrix);
 
-  save("myImg.bmp", matrix);
+  save("myImg.jpg", matrix);
  
   // FREE ALL
   printf("Free All:\n");
