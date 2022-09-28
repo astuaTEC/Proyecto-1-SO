@@ -1,0 +1,11 @@
+#Para instalar GTK3 se de debe usar el siguiente comando
+
+sudo apt-get install libgtk-3-dev
+
+#dura alguillo
+#El header queda en rojo como que no detecta la librería, pero 
+#al compilarlo todo bien, el programa corre bien
+
+#Para compilar el programa
+
+gcc `pkg-config --cflags gtk+-3.0` -o GUI GUI.c `pkg-config --libs gtk+-3.0`
