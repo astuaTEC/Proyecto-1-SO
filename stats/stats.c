@@ -33,6 +33,8 @@ typedef struct
     int finalPixel;
     int initPixel;
     char imgName[20];
+    int row;
+    int col;
 } pixelInfo;
 
 

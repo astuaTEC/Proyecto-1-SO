@@ -36,6 +36,8 @@ typedef struct
     int finalPixel;
     int initPixel;
     char imgName[20];
+    int row;
+    int col;
 } pixelInfo;
 
 
@@ -85,6 +87,8 @@ int main(int argc, char *argv[]){
             printf("Encoder: Escribo un valor\n");
             pixels[i].value = (int) gsl_matrix_get(matrix, row, col) ^ key;
             pixels[i].index = i;
+            pixels[i].row = row;
+            pixels[i].col = col;
             strcpy(pixels[i].imgName, imgName);
             time(&t);
             strcpy(pixels[i].date, ctime(&t));
@@ -105,7 +109,7 @@ int main(int argc, char *argv[]){
                 i = -1;  // reset the counter
             }
             i++;
-            sleep(0.9999);
+            usleep(500);
             }
     }
 
