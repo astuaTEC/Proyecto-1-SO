@@ -40,13 +40,14 @@ typedef struct
 
 int main(int argc, char *argv[]){
 
-    if(argc < 3){
+    if(argc < 4){
         perror("Missing arguments");
         return 1;
     }
 
     char *imgName = argv[1];
     int chunkSize = atoi(argv[2]);
+    int key = atoi(argv[3]);
 
     sem_t *llenos = NULL, *huecos = NULL;
     pixelInfo *pixels;
@@ -74,8 +75,6 @@ int main(int argc, char *argv[]){
 
     gsl_matrix *matrix = getMatrixFromImage(imgName);
 
-    printf("%f\n", gsl_matrix_get(matrix, 0, 0));
-
     int i = 0;
     int maxRows = matrix->size1;
     int maxCols = matrix->size2;
@@ -83,7 +82,7 @@ int main(int argc, char *argv[]){
         for(int col = 0; col < maxCols; col++){
             sem_wait(huecos); // down a un hueco
             printf("Encoder: Escribo un valor\n");
-            pixels[i].value = gsl_matrix_get(matrix, row, col);
+            pixels[i].value = (int) gsl_matrix_get(matrix, row, col) ^ key;
             pixels[i].index = i;
             strcpy(pixels[i].imgName, imgName);
             time(&t);

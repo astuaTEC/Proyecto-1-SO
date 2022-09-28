@@ -11,6 +11,8 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <strings.h>
+#include <string.h>
 
 // For fork
 #include <sys/types.h>
@@ -34,8 +36,19 @@ typedef struct
     char imgName[20];
 } pixelInfo;
 
-int main()
+char myImg[20];
+
+int main(int argc, char *argv[])
 {
+    if(argc < 2){
+        perror("Missing arguments");
+        return 1;
+    }
+
+    bzero(myImg, 20);
+
+    int key = atoi(argv[1]);
+
     sem_t *llenos = NULL, *huecos = NULL;
 
     int fd_shm = shm_open(SHM_SEMS, O_RDWR | O_EXCL, S_IRUSR | S_IWUSR);
@@ -61,13 +74,20 @@ int main()
     while (1)
     {
         sem_wait(llenos); // down a un lleno
-        printf("Decoder: Leo un valor\n");
-        printf("Date: %s", pixels[i].date);
-        printf("Value: %d\n", pixels[i].value);
-        printf("Index: %d\n", pixels[i].index);
-        printf("Img Name: %s\n", pixels[i].imgName);
-        printf("-----------------------------\n");
-        sem_post(huecos); // up a un hueco
+        if( strlen(myImg) == 0){
+            strcpy(myImg, pixels[i].imgName);
+        }
+        if ( strcmp(myImg, pixels[i].imgName) == 0){ //strings are equal
+            printf("Decoder: Leo un valor\n");
+            printf("Date: %s", pixels[i].date);
+            printf("Value: %d\n", pixels[i].value ^ key);
+            printf("Index: %d\n", pixels[i].index);
+            printf("Img Name: %s\n", pixels[i].imgName);
+            printf("-----------------------------\n");
+            sem_post(huecos); // up a un hueco
+        } else {
+            sem_post(llenos); // up a llenos si la imagen no corresponde con la que tiene que leer
+        }
         if(pixels[i].finalPixel == 1){ //verify the end of the image
             break;
         }
