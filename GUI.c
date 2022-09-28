@@ -30,11 +30,19 @@ int main(int argc, char **argv) {
 
     //gtk_label_new -- element to display the image pixel by pixel
 
+    //Parameters (0, 0, 1, 1)
+    /*
+        First: Number of row
+        Second: Number of column
+        Third: weigth
+        Fourth: Height
+    */
+
+    //About color configuration
+    //https://stackoverflow.com/questions/1706550/gtk-modifying-background-color-of-gtkbutton
+
     square = gtk_label_new("");
     gtk_grid_attach(GTK_GRID(grid), square, 0, 0, 1, 1);
-
-    square2 = gtk_label_new("");
-    gtk_grid_attach(GTK_GRID(grid), square2, 1, 0, 1, 1);
 
     gtk_widget_show_all(window);
     gtk_main();
