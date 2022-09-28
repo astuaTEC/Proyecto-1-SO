@@ -33,6 +33,7 @@ typedef struct
     int index;
     char date[25];
     int finalPixel;
+    int initPixel;
     char imgName[20];
 } pixelInfo;
 
@@ -74,7 +75,7 @@ int main(int argc, char *argv[])
     while (1)
     {
         sem_wait(llenos); // down a un lleno
-        if( strlen(myImg) == 0){
+        if( strlen(myImg) == 0 && pixels[i].initPixel == 1){
             strcpy(myImg, pixels[i].imgName);
         }
         if ( strcmp(myImg, pixels[i].imgName) == 0){ //strings are equal
@@ -95,7 +96,7 @@ int main(int argc, char *argv[])
             i = -1;
         }
         i++;
-        sleep(0.5);
+        sleep(1);
     }
 
     wait(NULL);

@@ -34,6 +34,7 @@ typedef struct
     int index;
     char date[25];
     int finalPixel;
+    int initPixel;
     char imgName[20];
 } pixelInfo;
 
@@ -93,12 +94,18 @@ int main(int argc, char *argv[]){
             else {
                 pixels[i].finalPixel = 0;
             }
+            if (row == 0 && col == 0){ // verify first pixel
+                pixels[i].initPixel = 1;
+            }
+            else {
+                pixels[i].initPixel = 0;
+            }
             sem_post(llenos); // up a un lleno
             if( i == chunkSize - 1){ // returns to the beginning of the array
                 i = -1;  // reset the counter
             }
             i++;
-            sleep(0.5);
+            sleep(0.9999);
             }
     }
 
