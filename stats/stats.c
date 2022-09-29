@@ -24,6 +24,7 @@
 
 
 #define SHM_SEMS "sems_shared_memory"
+#define SHM_STATS "stats_shared_memory"
 
 typedef struct
 {
@@ -37,17 +38,22 @@ typedef struct
     int col;
 } pixelInfo;
 
+typedef struct {
+    int counter;
+} statsInfo;
+
 
 int main(){
 
     sem_t *llenos = NULL, *huecos = NULL;
 
     int fd_shm = shm_open(SHM_SEMS, O_RDWR | O_EXCL, S_IRUSR | S_IWUSR);
+    int stats_shm = shm_open(SHM_STATS, O_RDWR | O_EXCL, S_IRUSR | S_IWUSR);
 
     llenos = sem_open(SEM_NAME_1, O_RDWR); // llenos
     huecos = sem_open(SEM_NAME_2, O_RDWR); // huecos
 
-    if(llenos == SEM_FAILED || huecos == SEM_FAILED || fd_shm == -1){
+    if(llenos == SEM_FAILED || huecos == SEM_FAILED || fd_shm == -1 || stats_shm == -1){
         printf("Shared memory or semaphores weren't created...\n");
         return 0;
     }
@@ -59,6 +65,7 @@ int main(){
     sem_unlink(SEM_NAME_2);
 
     shm_unlink(SHM_SEMS);
+    shm_unlink(SHM_STATS);
 
     return 0;
 }

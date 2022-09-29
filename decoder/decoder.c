@@ -94,12 +94,15 @@ int update_pic(gpointer data) {
             c = pixels[i].col;
             finalPixel = pixels[i].finalPixel;
             setrgb(g, r, c, id->stride, pixels[i].value ^ key);
+            
             sem_post(huecos);
 
             if (finalPixel == 1)
             { // verify the end of the image
                 return FALSE;
             }
+    } else {
+        sem_post(llenos);
     }
     if (i == length - 1)
     {

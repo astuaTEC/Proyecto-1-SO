@@ -27,6 +27,7 @@
 #define SEM_NAME_2 "/huecos"
 
 #define SHM_SEMS "sems_shared_memory"
+#define SHM_STATS "stats_shared_memory"
 
 typedef struct
 {
@@ -39,6 +40,10 @@ typedef struct
     int row;
     int col;
 } pixelInfo;
+
+typedef struct {
+    int counter;
+} statsInfo;
 
 
 int main(int argc, char *argv[]){
@@ -54,6 +59,7 @@ int main(int argc, char *argv[]){
 
     sem_t *llenos = NULL, *huecos = NULL;
     pixelInfo *pixels;
+    statsInfo *stats;
 
     llenos = sem_open(SEM_NAME_1, O_CREAT | O_EXCL, S_IRUSR | S_IWUSR, 0); // llenos
     huecos = sem_open(SEM_NAME_2, O_CREAT | O_EXCL, S_IRUSR | S_IWUSR, chunkSize); // huecos
@@ -65,14 +71,18 @@ int main(int argc, char *argv[]){
     }
 
     int fd_shm = shm_open(SHM_SEMS, O_RDWR | O_EXCL, S_IRUSR | S_IWUSR);
+    int stats_shm = shm_open(SHM_STATS, O_RDWR | O_EXCL, S_IRUSR | S_IWUSR);
 
-    if(fd_shm == -1){
+    if(fd_shm == -1 || stats_shm == -1){
         printf("Create the shared memory...\n");
         fd_shm = shm_open(SHM_SEMS, O_RDWR | O_CREAT | O_EXCL, S_IRUSR | S_IWUSR);
+        stats_shm = shm_open(SHM_STATS, O_RDWR | O_CREAT | O_EXCL, S_IRUSR | S_IWUSR);
         ftruncate(fd_shm, sizeof(pixelInfo)*chunkSize); // Array de structs tamaño n
+        ftruncate(stats_shm, sizeof(statsInfo));
     }
 
     pixels = mmap(NULL, sizeof(pixelInfo)*chunkSize, PROT_READ | PROT_WRITE, MAP_SHARED, fd_shm, 0);
+    stats = mmap(NULL, sizeof(statsInfo), PROT_READ | PROT_WRITE, MAP_SHARED, fd_shm, 0);
 
     time_t t;   // not a primitive datatype
 
@@ -84,43 +94,43 @@ int main(int argc, char *argv[]){
     for(int row = 0; row < maxRows; row++){
         for(int col = 0; col < maxCols; col++){
             sem_wait(huecos); // down a un hueco
-            if(strcmp(imgName, pixels[i].imgName) == 0 || strlen(pixels[i].imgName) == 0){
-                printf("Encoder: Escribo un valor\n");
-                pixels[i].value = (int)gsl_matrix_get(matrix, row, col) ^ key;
-                pixels[i].index = i;
-                pixels[i].row = row;
-                pixels[i].col = col;
-                strcpy(pixels[i].imgName, imgName);
-                time(&t);
-                strcpy(pixels[i].date, ctime(&t));
-                if (row == maxRows - 1 && col == maxCols - 1)
-                { // verify last pixel
-                    pixels[i].finalPixel = 1;
-                }
-                else
-                {
-                    pixels[i].finalPixel = 0;
-                }
-                if (row == 0 && col == 0)
-                { // verify first pixel
-                    pixels[i].initPixel = 1;
-                }
-                else
-                {
-                    pixels[i].initPixel = 0;
-                }
+            printf("Encoder: Escribo un valor\n");
+            
+            if (stats->counter == chunkSize)
+            {                       // returns to the beginning of the array
+                stats->counter = 0; // reset the counter
             } else {
-                if (col + 1 == maxCols)
-                    row--;
-                col--;
+                i = stats->counter;
             }
+
+            pixels[i].value = (int)gsl_matrix_get(matrix, row, col) ^ key;
+            pixels[i].index = i;
+            pixels[i].row = row;
+            pixels[i].col = col;
+            strcpy(pixels[i].imgName, imgName);
+            time(&t);
+            strcpy(pixels[i].date, ctime(&t));
+            if (row == maxRows - 1 && col == maxCols - 1)
+            { // verify last pixel
+                pixels[i].finalPixel = 1;
+            }
+            else
+            {
+                pixels[i].finalPixel = 0;
+            }
+            if (row == 0 && col == 0)
+            { // verify first pixel
+                pixels[i].initPixel = 1;
+            }
+            else
+            {
+                pixels[i].initPixel = 0;
+            }
+
+            stats->counter = i + 1;
+
             sem_post(llenos); // up a un lleno
-            if( i == chunkSize - 1){ // returns to the beginning of the array
-                i = -1;  // reset the counter
-            }
-            i++;
-            //usleep(5e3);
-            }
+        }
     }
 
     munmap(pixels, sizeof(pixelInfo)*chunkSize);
