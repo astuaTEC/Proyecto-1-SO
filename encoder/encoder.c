@@ -42,7 +42,7 @@ typedef struct
 } pixelInfo;
 
 typedef struct {
-    int counter;
+    int counter, readCounter;
 } statsInfo;
 
 
@@ -82,7 +82,7 @@ int main(int argc, char *argv[]){
     }
 
     pixels = mmap(NULL, sizeof(pixelInfo)*chunkSize, PROT_READ | PROT_WRITE, MAP_SHARED, fd_shm, 0);
-    stats = mmap(NULL, sizeof(statsInfo), PROT_READ | PROT_WRITE, MAP_SHARED, fd_shm, 0);
+    stats = mmap(NULL, sizeof(statsInfo), PROT_READ | PROT_WRITE, MAP_SHARED, stats_shm, 0);
 
     time_t t;   // not a primitive datatype
 
@@ -99,12 +99,11 @@ int main(int argc, char *argv[]){
             if (stats->counter == chunkSize)
             {                       // returns to the beginning of the array
                 stats->counter = 0; // reset the counter
-            } else {
-                i = stats->counter;
-            }
-
-            pixels[i].value = (int)gsl_matrix_get(matrix, row, col) ^ key;
+            } 
+            i = stats->counter;
+    
             pixels[i].index = i;
+            pixels[i].value = (int)gsl_matrix_get(matrix, row, col) ^ key;
             pixels[i].row = row;
             pixels[i].col = col;
             strcpy(pixels[i].imgName, imgName);
@@ -130,6 +129,8 @@ int main(int argc, char *argv[]){
             stats->counter = i + 1;
 
             sem_post(llenos); // up a un lleno
+
+            //usleep(5e4);
         }
     }
 

@@ -29,6 +29,7 @@
 
 
 #define SHM_SEMS "sems_shared_memory"
+#define SHM_STATS "stats_shared_memory"
 
 #define ROWS 100
 #define COLS 100
@@ -47,6 +48,10 @@ typedef struct
 } pixelInfo;
 
 typedef struct {
+    int counter, readCounter;
+} statsInfo;
+
+typedef struct {
   GtkImage *image;
   int rows, cols, stride;
 } ImageData;
@@ -55,6 +60,7 @@ char myImg[20];
 int key, length;
 sem_t *llenos = NULL, *huecos = NULL;
 pixelInfo *pixels;
+statsInfo *stats;
 int i = 0;
 
 void setrgb(guchar *a, int row, int col, int stride,
@@ -77,13 +83,20 @@ int update_pic(gpointer data) {
  
     guchar *g = gdk_pixbuf_get_pixels(pb);
     int r, c, finalPixel;
-    sem_wait(llenos); // down a un lleno
-    if (strlen(myImg) == 0 && pixels[i].initPixel == 1)
+    
+    if (stats->readCounter == length)
+    {                       // returns to the beginning of the array
+        stats->readCounter = 0; // reset the counter
+    } 
+    i = stats->readCounter;
+    if( (pixels[i].value ^ key) == 0) printf("!!!!!!!!!!!!!!!!!!\n");
+    if (strlen(myImg) == 0 && pixels[i].imgName)
     {
-            strcpy(myImg, pixels[i].imgName);
+        strcpy(myImg, pixels[i].imgName);
     }
     if (strcmp(myImg, pixels[i].imgName) == 0)
     { // strings are equal
+            sem_wait(llenos); // down a un lleno
             printf("Decoder: Leo un valor\n");
             printf("Date: %s", pixels[i].date);
             printf("Value: %d\n", pixels[i].value ^ key);
@@ -94,24 +107,17 @@ int update_pic(gpointer data) {
             c = pixels[i].col;
             finalPixel = pixels[i].finalPixel;
             setrgb(g, r, c, id->stride, pixels[i].value ^ key);
-            
+            stats->readCounter = i + 1;
             sem_post(huecos);
 
             if (finalPixel == 1)
             { // verify the end of the image
                 return FALSE;
             }
-    } else {
-        sem_post(llenos);
     }
-    if (i == length - 1)
-    {
-        i = -1;
-    }
-    i++;
 
     gtk_image_set_from_pixbuf(GTK_IMAGE(id->image), pb);
-    
+
     return TRUE; // continue timer
 }
 
@@ -127,11 +133,12 @@ int main(int argc, char *argv[])
     key = atoi(argv[1]);
 
     int fd_shm = shm_open(SHM_SEMS, O_RDWR | O_EXCL, S_IRUSR | S_IWUSR);
+    int stats_shm = shm_open(SHM_STATS, O_RDWR | O_EXCL, S_IRUSR | S_IWUSR);
 
     llenos = sem_open(SEM_NAME_1, O_RDWR); // llenos
     huecos = sem_open(SEM_NAME_2, O_RDWR); // huecos
 
-    if(llenos == SEM_FAILED || huecos == SEM_FAILED || fd_shm == -1){
+    if(llenos == SEM_FAILED || huecos == SEM_FAILED || fd_shm == -1 || stats_shm == -1){
         printf("Please, create a encoder first...\n");
         return -1;
     }
@@ -144,6 +151,7 @@ int main(int argc, char *argv[])
     printf("Length: %d\n", length);
 
     pixels = mmap(NULL, sizeof(pixelInfo)*length, PROT_READ | PROT_WRITE, MAP_SHARED, fd_shm, 0);
+    stats = mmap(NULL, sizeof(statsInfo), PROT_READ | PROT_WRITE, MAP_SHARED, stats_shm, 0);
 
     /////////////////////// GUI ///////////////////
     gtk_init(&argc, &argv);
