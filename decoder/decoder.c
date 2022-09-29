@@ -82,31 +82,32 @@ int update_pic(gpointer data) {
     GdkPixbuf *pb = gtk_image_get_pixbuf(id->image);
  
     guchar *g = gdk_pixbuf_get_pixels(pb);
-    int r, c, finalPixel;
+    int r, c, finalPixel, valueDeco;
     
     if (stats->readCounter == length)
     {                       // returns to the beginning of the array
         stats->readCounter = 0; // reset the counter
     } 
     i = stats->readCounter;
-    if( (pixels[i].value ^ key) == 0) printf("!!!!!!!!!!!!!!!!!!\n");
-    if (strlen(myImg) == 0 && pixels[i].imgName)
+
+    if (strlen(myImg) == 0 && pixels[i].initPixel == 1)
     {
         strcpy(myImg, pixels[i].imgName);
     }
     if (strcmp(myImg, pixels[i].imgName) == 0)
     { // strings are equal
             sem_wait(llenos); // down a un lleno
+            valueDeco = (pixels[i].value ^ key);
             printf("Decoder: Leo un valor\n");
             printf("Date: %s", pixels[i].date);
-            printf("Value: %d\n", pixels[i].value ^ key);
+            printf("Value: %d\n", valueDeco);
             printf("Index: %d\n", pixels[i].index);
             printf("Img Name: %s\n", pixels[i].imgName);
             printf("-----------------------------\n");
             r = pixels[i].row;
             c = pixels[i].col;
             finalPixel = pixels[i].finalPixel;
-            setrgb(g, r, c, id->stride, pixels[i].value ^ key);
+            setrgb(g, r, c, id->stride, valueDeco);
             stats->readCounter = i + 1;
             sem_post(huecos);
 
