@@ -84,32 +84,42 @@ int main(int argc, char *argv[]){
     for(int row = 0; row < maxRows; row++){
         for(int col = 0; col < maxCols; col++){
             sem_wait(huecos); // down a un hueco
-            printf("Encoder: Escribo un valor\n");
-            pixels[i].value = (int) gsl_matrix_get(matrix, row, col) ^ key;
-            pixels[i].index = i;
-            pixels[i].row = row;
-            pixels[i].col = col;
-            strcpy(pixels[i].imgName, imgName);
-            time(&t);
-            strcpy(pixels[i].date, ctime(&t));
-            if (row == maxRows - 1 && col == maxCols - 1){ // verify last pixel
-                pixels[i].finalPixel = 1;
-            }
-            else {
-                pixels[i].finalPixel = 0;
-            }
-            if (row == 0 && col == 0){ // verify first pixel
-                pixels[i].initPixel = 1;
-            }
-            else {
-                pixels[i].initPixel = 0;
+            if(strcmp(imgName, pixels[i].imgName) == 0 || strlen(pixels[i].imgName) == 0){
+                printf("Encoder: Escribo un valor\n");
+                pixels[i].value = (int)gsl_matrix_get(matrix, row, col) ^ key;
+                pixels[i].index = i;
+                pixels[i].row = row;
+                pixels[i].col = col;
+                strcpy(pixels[i].imgName, imgName);
+                time(&t);
+                strcpy(pixels[i].date, ctime(&t));
+                if (row == maxRows - 1 && col == maxCols - 1)
+                { // verify last pixel
+                    pixels[i].finalPixel = 1;
+                }
+                else
+                {
+                    pixels[i].finalPixel = 0;
+                }
+                if (row == 0 && col == 0)
+                { // verify first pixel
+                    pixels[i].initPixel = 1;
+                }
+                else
+                {
+                    pixels[i].initPixel = 0;
+                }
+            } else {
+                if (col + 1 == maxCols)
+                    row--;
+                col--;
             }
             sem_post(llenos); // up a un lleno
             if( i == chunkSize - 1){ // returns to the beginning of the array
                 i = -1;  // reset the counter
             }
             i++;
-            usleep(500);
+            //usleep(5e3);
             }
     }
 
