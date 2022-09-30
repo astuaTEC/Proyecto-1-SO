@@ -42,7 +42,7 @@ typedef struct
 } pixelInfo;
 
 typedef struct {
-    int counter, readCounter;
+    int counter, readCounter, pixelsGT175;
 } statsInfo;
 
 
@@ -88,7 +88,7 @@ int main(int argc, char *argv[]){
 
     gsl_matrix *matrix = getMatrixFromImage(imgName);
 
-    int i = 0;
+    int i = 0, value;
     int maxRows = matrix->size1;
     int maxCols = matrix->size2;
     for(int row = 0; row < maxRows; row++){
@@ -102,8 +102,12 @@ int main(int argc, char *argv[]){
             } 
             i = stats->counter;
     
+            value = (int)gsl_matrix_get(matrix, row, col);
             pixels[i].index = i;
-            pixels[i].value = (int)gsl_matrix_get(matrix, row, col) ^ key;
+            pixels[i].value = value ^ key;
+
+            if (value > 175) stats->pixelsGT175++; // for stats
+            
             pixels[i].row = row;
             pixels[i].col = col;
             strcpy(pixels[i].imgName, imgName);

@@ -31,8 +31,10 @@
 #define SHM_SEMS "sems_shared_memory"
 #define SHM_STATS "stats_shared_memory"
 
-#define ROWS 100
-#define COLS 100
+#define ROWS 300
+#define COLS 300
+#define WIDTH 400
+#define HEIGHT 400
 #define BYTES_PER_PIXEL 3
 
 typedef struct
@@ -48,7 +50,7 @@ typedef struct
 } pixelInfo;
 
 typedef struct {
-    int counter, readCounter;
+    int counter, readCounter, pixelsGT175;
 } statsInfo;
 
 typedef struct {
@@ -180,7 +182,7 @@ int main(int argc, char *argv[])
     
     GtkWidget *window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
     gtk_window_set_title(GTK_WINDOW(window), "Image");
-    gtk_window_set_default_size(GTK_WINDOW(window), COLS, ROWS);
+    gtk_window_set_default_size(GTK_WINDOW(window), WIDTH, HEIGHT);
     gtk_window_set_position(GTK_WINDOW(window), GTK_WIN_POS_CENTER);
     g_signal_connect(window, "destroy", G_CALLBACK(gtk_main_quit), NULL);
     
