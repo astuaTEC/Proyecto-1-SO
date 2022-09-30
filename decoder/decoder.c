@@ -13,6 +13,7 @@
 #include <stdio.h>
 #include <strings.h>
 #include <string.h>
+#include <time.h>
 
 // for GUI
 #include <gtk/gtk.h>
@@ -50,12 +51,14 @@ typedef struct
 } pixelInfo;
 
 typedef struct {
-    int counter, readCounter, pixelsGT175;
+    int counter, readCounter, pixelsGT175, encoderData;
+    time_t start, end;
+    double cpu_time_used;
 } statsInfo;
 
 typedef struct {
-  GtkImage *image;
-  int rows, cols, stride;
+    GtkImage *image;
+    int rows, cols, stride;
 } ImageData;
 
 char myImg[20];
@@ -111,6 +114,7 @@ int update_pic(gpointer data) {
             finalPixel = pixels[i].finalPixel;
             setrgb(g, r, c, id->stride, valueDeco);
             stats->readCounter = i + 1;
+
             sem_post(huecos);
 
             if (finalPixel == 1)

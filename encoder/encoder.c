@@ -11,7 +11,8 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include<time.h>
+#include <time.h>
+#include <inttypes.h>
 
 // For fork
 #include <sys/types.h>
@@ -42,9 +43,17 @@ typedef struct
 } pixelInfo;
 
 typedef struct {
-    int counter, readCounter, pixelsGT175;
+    int counter, readCounter, pixelsGT175, encoderData;
+    time_t start, end;
+    double cpu_time_used;
 } statsInfo;
 
+int64_t millis()
+{
+    struct timespec now;
+    timespec_get(&now, TIME_UTC);
+    return ((int64_t) now.tv_sec) * 1000 + ((int64_t) now.tv_nsec) / 1000000;
+}
 
 int main(int argc, char *argv[]){
 
@@ -93,7 +102,12 @@ int main(int argc, char *argv[]){
     int maxCols = matrix->size2;
     for(int row = 0; row < maxRows; row++){
         for(int col = 0; col < maxCols; col++){
+            stats->start = millis();
+            printf("???????????????\n");
             sem_wait(huecos); // down a un hueco
+            printf("XXXXXXXXXXX\n");
+            stats->end = millis();
+            stats->cpu_time_used += stats->end - stats->start;
             printf("Encoder: Escribo un valor\n");
             
             if (stats->counter == chunkSize)
@@ -107,7 +121,7 @@ int main(int argc, char *argv[]){
             pixels[i].value = value ^ key;
 
             if (value > 175) stats->pixelsGT175++; // for stats
-            
+
             pixels[i].row = row;
             pixels[i].col = col;
             strcpy(pixels[i].imgName, imgName);
@@ -131,10 +145,11 @@ int main(int argc, char *argv[]){
             }
 
             stats->counter = i + 1;
+            stats->encoderData += (int)sizeof(pixelInfo);
 
             sem_post(llenos); // up a un lleno
 
-            //usleep(5e4);
+            // usleep(5e5);
         }
     }
 

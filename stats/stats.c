@@ -11,10 +11,12 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 
 // For fork
 #include <sys/types.h>
 #include <unistd.h>
+#include <time.h>
 
 // For killing the child process
 #include <sys/wait.h>
@@ -48,7 +50,9 @@ typedef struct
 } pixelInfo;
 
 typedef struct {
-    int counter, readCounter, pixelsGT175;
+    int counter, readCounter, pixelsGT175, encoderData;
+    time_t start, end;
+    double cpu_time_used;
 } statsInfo;
 
 
@@ -69,7 +73,18 @@ int main(int argc, char **argv){
 
     statsInfo *stats = mmap(NULL, sizeof(statsInfo), PROT_READ | PROT_WRITE, MAP_SHARED, stats_shm, 0);
 
+    // FOR STATS
     int pixelsGT175 = stats->pixelsGT175;
+    // Get shared memory size
+    int memorySize;
+    struct stat buf;
+    fstat(fd_shm, &buf);
+    memorySize = (int) (buf.st_size); //size in bytes
+
+    int encoderData = stats->encoderData;
+    double timeSem = stats->cpu_time_used / 1000;
+
+    printf("Seconds: %lf\n", timeSem);
 
     printf("Freeing memory and closing the semaphores...\n");
 
@@ -98,7 +113,15 @@ int main(int argc, char **argv){
     grid = gtk_grid_new();
     gtk_container_add(GTK_CONTAINER(window), grid);
 
-    memoria_total = gtk_label_new("Memoria Total Utilizada:");
+    memoria_total = gtk_label_new("");
+    char m_number[6];
+    sprintf(m_number, "%d", memorySize);
+    char memSize[150];
+    bzero(memSize, 150);
+    strcat(memSize, "Memoria Total Utilizada: ");
+    strcat(memSize, m_number);
+    strcat(memSize, " bytes");
+    gtk_label_set_text(GTK_LABEL(memoria_total), memSize);
     gtk_label_set_xalign(memoria_total,0.0);
     gtk_widget_set_size_request(memoria_total, 10, 30);
     gtk_grid_attach(GTK_GRID(grid), memoria_total, 0, 1, 1, 1);
@@ -108,7 +131,15 @@ int main(int argc, char **argv){
     gtk_widget_set_size_request(tiempo_semaforos, 10, 30);
     gtk_grid_attach(GTK_GRID(grid), tiempo_semaforos, 0, 2, 1, 1);
 
-    datos_transferidos = gtk_label_new("Total de datos transferidos por encodificadores:");
+    datos_transferidos = gtk_label_new("");
+    char ed_number[12];
+    sprintf(ed_number, "%d", encoderData);
+    char encoData[200];
+    bzero(encoData, 200);
+    strcat(encoData, "Total de datos transferidos por encodificadores: ");
+    strcat(encoData, ed_number);
+    strcat(encoData, " bytes");
+    gtk_label_set_text(GTK_LABEL(datos_transferidos), encoData);
     gtk_label_set_xalign(datos_transferidos,0.0);
     gtk_widget_set_size_request(datos_transferidos, 10, 30);
     gtk_grid_attach(GTK_GRID(grid), datos_transferidos, 0, 3, 1, 1);
@@ -118,7 +149,14 @@ int main(int argc, char **argv){
     gtk_widget_set_size_request(tiempo_kernel, 10, 30);
     gtk_grid_attach(GTK_GRID(grid), tiempo_kernel, 0, 4, 1, 1);
 
-    cantidad_pixeles = gtk_label_new("Cantidad de Pixeles:");
+    cantidad_pixeles = gtk_label_new("");
+    char p_number[6];
+    sprintf(p_number, "%d", pixelsGT175);
+    char pixeles[200];
+    bzero(pixeles, 200);
+    strcat(pixeles, "Cantidad de Pixeles mayores a 175: ");
+    strcat(pixeles, p_number);
+    gtk_label_set_text(GTK_LABEL(cantidad_pixeles), pixeles);
     gtk_label_set_xalign(cantidad_pixeles,0.0);
     gtk_widget_set_size_request(cantidad_pixeles, 10, 30);
     gtk_grid_attach(GTK_GRID(grid), cantidad_pixeles, 0, 5, 1, 1);
