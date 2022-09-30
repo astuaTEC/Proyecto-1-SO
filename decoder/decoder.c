@@ -94,6 +94,8 @@ int update_pic(gpointer data) {
     i = stats->readCounter;
 
     char ch;
+    printf("°°°°°°\n");
+    sem_wait(llenos); // down a un lleno
 
     if (strlen(myImg) == 0 && pixels[i].initPixel == 1)
     {
@@ -112,7 +114,6 @@ int update_pic(gpointer data) {
                     printf("ENTER KEY is pressed.\n");
                 }
             }
-            sem_wait(llenos); // down a un lleno
             valueDeco = (pixels[i].value ^ key);
             printf("Decoder: Leo un valor\n");
             printf("Date: %s", pixels[i].date);
@@ -140,6 +141,8 @@ int update_pic(gpointer data) {
             }
 
             return TRUE;
+    } else {
+        sem_post(llenos);
     }
 
     gtk_image_set_from_pixbuf(GTK_IMAGE(id->image), pb);
@@ -159,7 +162,7 @@ int main(int argc, char *argv[])
     key = atoi(argv[1]);
     mode = atoi(argv[2]);
     if(mode == 0){
-        if ( argc < 4) stepTime = 0;
+        if ( argc < 4) stepTime = 2000;
         else stepTime = atoi(argv[3]);
     }
 
