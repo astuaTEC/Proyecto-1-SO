@@ -53,7 +53,9 @@ typedef struct
 typedef struct {
     int counter, readCounter, pixelsGT175, encoderData;
     time_t start, end;
+    time_t startK, endK;
     double cpu_time_used;
+    double kernelTime;
 } statsInfo;
 
 typedef struct {
@@ -62,7 +64,7 @@ typedef struct {
 } ImageData;
 
 char myImg[20];
-int key, length;
+int key, length, mode, stepTime;
 sem_t *llenos = NULL, *huecos = NULL;
 pixelInfo *pixels;
 statsInfo *stats;
@@ -89,11 +91,9 @@ int update_pic(gpointer data) {
     guchar *g = gdk_pixbuf_get_pixels(pb);
     int r, c, finalPixel, valueDeco;
     
-    if (stats->readCounter == length)
-    {                       // returns to the beginning of the array
-        stats->readCounter = 0; // reset the counter
-    } 
     i = stats->readCounter;
+
+    char ch;
 
     if (strlen(myImg) == 0 && pixels[i].initPixel == 1)
     {
@@ -101,6 +101,17 @@ int update_pic(gpointer data) {
     }
     if (strcmp(myImg, pixels[i].imgName) == 0)
     { // strings are equal
+            if (mode == 1)
+            {
+                printf("Enter any character: ");
+                // read a single character
+                ch = fgetc(stdin);
+
+                if (ch == 0x0A)
+                {
+                    printf("ENTER KEY is pressed.\n");
+                }
+            }
             sem_wait(llenos); // down a un lleno
             valueDeco = (pixels[i].value ^ key);
             printf("Decoder: Leo un valor\n");
@@ -114,23 +125,31 @@ int update_pic(gpointer data) {
             finalPixel = pixels[i].finalPixel;
             setrgb(g, r, c, id->stride, valueDeco);
             stats->readCounter = i + 1;
+            if (stats->readCounter == length)
+            {                           // returns to the beginning of the array
+                stats->readCounter = 0; // reset the counter
+            }
 
             sem_post(huecos);
+
+            gtk_image_set_from_pixbuf(GTK_IMAGE(id->image), pb);
 
             if (finalPixel == 1)
             { // verify the end of the image
                 return FALSE;
             }
+
+            return TRUE;
     }
 
     gtk_image_set_from_pixbuf(GTK_IMAGE(id->image), pb);
 
-    return TRUE; // continue timer
+    return TRUE;
 }
 
 int main(int argc, char *argv[])
 {
-    if(argc < 2){
+    if(argc < 3){
         perror("Missing arguments");
         return 1;
     }
@@ -138,6 +157,11 @@ int main(int argc, char *argv[])
     bzero(myImg, 20);
 
     key = atoi(argv[1]);
+    mode = atoi(argv[2]);
+    if(mode == 0){
+        if ( argc < 4) stepTime = 0;
+        else stepTime = atoi(argv[3]);
+    }
 
     int fd_shm = shm_open(SHM_SEMS, O_RDWR | O_EXCL, S_IRUSR | S_IWUSR);
     int stats_shm = shm_open(SHM_STATS, O_RDWR | O_EXCL, S_IRUSR | S_IWUSR);
@@ -192,7 +216,7 @@ int main(int argc, char *argv[])
     
     gtk_container_add(GTK_CONTAINER(window), GTK_WIDGET(id.image));
     
-    g_timeout_add(10,            // milliseconds
+    g_timeout_add(stepTime,      // milliseconds
                   update_pic,   // handler function
                   &id);         // data
     

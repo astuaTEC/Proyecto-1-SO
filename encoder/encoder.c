@@ -45,7 +45,9 @@ typedef struct
 typedef struct {
     int counter, readCounter, pixelsGT175, encoderData;
     time_t start, end;
+    time_t startK, endK;
     double cpu_time_used;
+    double kernelTime;
 } statsInfo;
 
 int64_t millis()
@@ -57,7 +59,7 @@ int64_t millis()
 
 int main(int argc, char *argv[]){
 
-    if(argc < 4){
+    if(argc < 5){
         perror("Missing arguments");
         return 1;
     }
@@ -65,6 +67,12 @@ int main(int argc, char *argv[]){
     char *imgName = argv[1];
     int chunkSize = atoi(argv[2]);
     int key = atoi(argv[3]);
+    int mode = atoi(argv[4]);
+    int stepTime;
+    if(mode == 0){
+        if ( argc < 6) stepTime = 0;
+        else stepTime = atoi(argv[5]);
+    }
 
     sem_t *llenos = NULL, *huecos = NULL;
     pixelInfo *pixels;
@@ -97,16 +105,30 @@ int main(int argc, char *argv[]){
 
     gsl_matrix *matrix = getMatrixFromImage(imgName);
 
+    char ch;
     int i = 0, value;
     int maxRows = matrix->size1;
     int maxCols = matrix->size2;
+    stepTime *= 1000; // to pass millis to micros
     for(int row = 0; row < maxRows; row++){
         for(int col = 0; col < maxCols; col++){
+            if( mode == 1){
+                printf("Enter any character: ");
+                //read a single character
+                ch = fgetc(stdin);
+                
+                if(ch == 0x0A)
+                {
+                    printf("ENTER KEY is pressed.\n");
+                }
+            }
+
             stats->start = millis();
             printf("???????????????\n");
             sem_wait(huecos); // down a un hueco
             printf("XXXXXXXXXXX\n");
             stats->end = millis();
+            stats->startK = stats->end;
             stats->cpu_time_used += stats->end - stats->start;
             printf("Encoder: Escribo un valor\n");
             
@@ -146,10 +168,11 @@ int main(int argc, char *argv[]){
 
             stats->counter = i + 1;
             stats->encoderData += (int)sizeof(pixelInfo);
-
+            stats->endK = millis();
+            stats->kernelTime += stats->endK - stats->startK;
             sem_post(llenos); // up a un lleno
 
-            // usleep(5e5);
+            usleep(stepTime);
         }
     }
 

@@ -52,7 +52,9 @@ typedef struct
 typedef struct {
     int counter, readCounter, pixelsGT175, encoderData;
     time_t start, end;
+    time_t startK, endK;
     double cpu_time_used;
+    double kernelTime;
 } statsInfo;
 
 
@@ -82,9 +84,10 @@ int main(int argc, char **argv){
     memorySize = (int) (buf.st_size); //size in bytes
 
     int encoderData = stats->encoderData;
-    double timeSem = stats->cpu_time_used / 1000;
+    double timeSem = (stats->cpu_time_used - stats->kernelTime) / 1000;
 
     printf("Seconds: %lf\n", timeSem);
+    printf("Kernel: %lf\n", stats->kernelTime/1000);
 
     printf("Freeing memory and closing the semaphores...\n");
 
