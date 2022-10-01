@@ -54,9 +54,7 @@ typedef struct {
     int counter, readCounter, pixelsGT175, encoderData, flagRunnig;
     time_t startHuecos, endHuecos;
     time_t startLlenos, endLlenos;
-    time_t startK, endK;
     double huecos_time, llenos_time;
-    double kernelTime;
 } statsInfo;
 
 typedef struct {

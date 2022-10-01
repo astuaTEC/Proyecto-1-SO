@@ -46,9 +46,7 @@ typedef struct {
     int counter, readCounter, pixelsGT175, encoderData, flagRunnig;
     time_t startHuecos, endHuecos;
     time_t startLlenos, endLlenos;
-    time_t startK, endK;
     double huecos_time, llenos_time;
-    double kernelTime;
 } statsInfo;
 
 int64_t millis()
@@ -131,9 +129,8 @@ int main(int argc, char *argv[]){
             stats->startHuecos = millis();
             sem_wait(huecos); // down a un hueco
             stats->endHuecos = millis();
-
-            stats->startK = stats->endHuecos;
             stats->huecos_time += stats->endHuecos - stats->startHuecos;
+
             printf("Encoder: Escribo un valor\n");
             
             if (stats->counter == chunkSize)
@@ -172,8 +169,6 @@ int main(int argc, char *argv[]){
 
             stats->counter = i + 1;
             stats->encoderData += (int)sizeof(pixelInfo);
-            stats->endK = millis();
-            stats->kernelTime += stats->endK - stats->startK;
 
             if(!stats->flagRunnig) break;
 
