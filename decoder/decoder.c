@@ -52,9 +52,10 @@ typedef struct
 
 typedef struct {
     int counter, readCounter, pixelsGT175, encoderData, flagRunnig;
-    time_t start, end;
+    time_t startHuecos, endHuecos;
+    time_t startLlenos, endLlenos;
     time_t startK, endK;
-    double cpu_time_used;
+    double huecos_time, llenos_time;
     double kernelTime;
 } statsInfo;
 
@@ -73,13 +74,20 @@ int i = 0, flagRunnig;
 // Define the window
 GtkWidget *window;
 
+int64_t millis()
+{
+    struct timespec now;
+    timespec_get(&now, TIME_UTC);
+    return ((int64_t) now.tv_sec) * 1000 + ((int64_t) now.tv_nsec) / 1000000;
+}
+
 void setrgb(guchar *a, int row, int col, int stride,
             guchar bw)
 {
     int p = row * stride + col * BYTES_PER_PIXEL;
-    a[p] = bw;
-    a[p + 1] = bw;
-    a[p + 2] = bw;
+    a[p] = bw; // R
+    a[p + 1] = bw; // G
+    a[p + 2] = bw; // B
 }
 
 void free_pixels(guchar *pixelsIn, gpointer data) {
@@ -99,8 +107,10 @@ int update_pic(gpointer data) {
     i = stats->readCounter;
 
     char ch;
-    printf("°°°°°°\n");
+    stats->startLlenos = millis();
     sem_wait(llenos); // down a un lleno
+    stats->endLlenos = millis();
+    stats->llenos_time = stats->endLlenos - stats->startLlenos;
 
     if (strlen(myImg) == 0 && pixels[i].initPixel == 1)
     {
@@ -110,7 +120,7 @@ int update_pic(gpointer data) {
     { // strings are equal
             if (mode == 1)
             {
-                printf("Enter any character: ");
+                printf("Press enter: ");
                 // read a single character
                 ch = fgetc(stdin);
 
@@ -235,7 +245,7 @@ int main(int argc, char *argv[])
 
     wait(NULL);
 
-    munmap(pixels, sizeof(pixelInfo)*5);
+    munmap(pixels, sizeof(pixelInfo)*length);
 
     return 0;
 }

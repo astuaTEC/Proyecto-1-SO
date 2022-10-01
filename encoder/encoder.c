@@ -44,9 +44,10 @@ typedef struct
 
 typedef struct {
     int counter, readCounter, pixelsGT175, encoderData, flagRunnig;
-    time_t start, end;
+    time_t startHuecos, endHuecos;
+    time_t startLlenos, endLlenos;
     time_t startK, endK;
-    double cpu_time_used;
+    double huecos_time, llenos_time;
     double kernelTime;
 } statsInfo;
 
@@ -117,7 +118,7 @@ int main(int argc, char *argv[]){
             if(!stats->flagRunnig) break;
 
             if( mode == 1){
-                printf("Enter any character: ");
+                printf("Please press Enter: ");
                 //read a single character
                 ch = fgetc(stdin);
                 
@@ -127,13 +128,12 @@ int main(int argc, char *argv[]){
                 }
             }
 
-            stats->start = millis();
-            printf("???????????????\n");
+            stats->startHuecos = millis();
             sem_wait(huecos); // down a un hueco
-            printf("XXXXXXXXXXX\n");
-            stats->end = millis();
-            stats->startK = stats->end;
-            stats->cpu_time_used += stats->end - stats->start;
+            stats->endHuecos = millis();
+
+            stats->startK = stats->endHuecos;
+            stats->huecos_time += stats->endHuecos - stats->startHuecos;
             printf("Encoder: Escribo un valor\n");
             
             if (stats->counter == chunkSize)
@@ -174,12 +174,25 @@ int main(int argc, char *argv[]){
             stats->encoderData += (int)sizeof(pixelInfo);
             stats->endK = millis();
             stats->kernelTime += stats->endK - stats->startK;
+
+            if(!stats->flagRunnig) break;
+
             sem_post(llenos); // up a un lleno
 
             usleep(stepTime);
         }
     }
 
+    // pid_t id = getpid();
+    // char command[100];
+    // sprintf(command, "sudo strace -p %d --summary-only", (int)id);
+    // printf("%s\n", command);
+    // system(command);
+    // printf("Pid %d \n", (int)id);
+    printf("Enter any character to exit: ");
+    //read a single character
+    ch = fgetc(stdin);
+    
     munmap(pixels, sizeof(pixelInfo)*chunkSize);
 
     return 0;

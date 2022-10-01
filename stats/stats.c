@@ -32,7 +32,7 @@
 
 //Definir los labels de las estadisiticas
 static GtkWidget *memoria_total;   //Memorial Total Utilizada: Estructura, variables compartidas
-static GtkWidget *tiempo_semaforos;
+static GtkWidget *tiempo_semaforos_huecos, *tiempo_semaforos_llenos;
 static GtkWidget *datos_transferidos;
 static GtkWidget *tiempo_kernel;    //Tiempo Kernel: escritura, lectura
 static GtkWidget *cantidad_pixeles;
@@ -51,9 +51,10 @@ typedef struct
 
 typedef struct {
     int counter, readCounter, pixelsGT175, encoderData, flagRunnig;
-    time_t start, end;
+    time_t startHuecos, endHuecos;
+    time_t startLlenos, endLlenos;
     time_t startK, endK;
-    double cpu_time_used;
+    double huecos_time, llenos_time;
     double kernelTime;
 } statsInfo;
 
@@ -77,6 +78,32 @@ int main(int argc, char **argv){
 
     stats->flagRunnig = 0;
 
+    char buffer1[512], buffer2[512], buffer3[512], buffer4[512];
+    FILE *cmd_pipe1 = popen("pidof enco.out", "r");
+    FILE *cmd_pipe2 = popen("pidof deco.out", "r");
+
+    FILE *straceDeco;
+    char commandDeco[100], commandKillDeco[100];
+    while (fgets(buffer1, 512, cmd_pipe1)){
+        printf("%s", buffer1);
+        pid_t pid = strtoul(buffer1, NULL, 10);
+        sprintf(commandDeco, "sudo strace -p %d --summary-only", (int)pid);
+        straceDeco = popen(commandDeco, "r");
+        sprintf(commandKillDeco, "sudo kill -9 %s", buffer1);
+        system(commandKillDeco);
+        while (fgets(buffer3, 512, straceDeco)){
+            printf("%s", buffer3);
+        }
+        pclose( straceDeco );
+    }
+
+    while (fgets(buffer2, 512, cmd_pipe2)){
+        printf("%s", buffer2);
+    }
+
+    pclose( cmd_pipe1 );
+    pclose( cmd_pipe2 );   
+
     // FOR STATS
     int pixelsGT175 = stats->pixelsGT175;
     // Get shared memory size
@@ -87,9 +114,10 @@ int main(int argc, char **argv){
 
     int encoderData = stats->encoderData;
     double kernelTime = stats->kernelTime / 1000;
-    double timeSem = (stats->cpu_time_used - stats->kernelTime) / 1000;
+    double timeHuecos = stats->huecos_time / 1000;
+    double timeLlenos = stats->llenos_time / 1000;
 
-    printf("Seconds: %lf\n", timeSem);
+    printf("Seconds: %lf\n", timeHuecos);
     printf("Kernel: %lf\n", stats->kernelTime/1000);
 
     printf("Freeing memory and closing the semaphores...\n");
@@ -106,7 +134,7 @@ int main(int argc, char **argv){
     /////////////////////// GUI ////////////////////////////
 
     int W = 400;
-    int H = 150;
+    int H = 180;
 
     //Configruacion de la ventana 
     GtkWindow *window;
@@ -134,19 +162,33 @@ int main(int argc, char **argv){
     gtk_widget_set_size_request(memoria_total, 10, 30);
     gtk_grid_attach(GTK_GRID(grid), memoria_total, 0, 1, 1, 1);
 
-    //////////////////// Tiempo por semáforos //////////////////////////////
-    tiempo_semaforos = gtk_label_new("");
-    char t_number[20];
-    sprintf(t_number, "%lf", timeSem);
-    char timeSems[150];
-    bzero(timeSems, 150);
-    strcat(timeSems, "Tiempo total por semáforos: ");
-    strcat(timeSems, t_number);
-    strcat(timeSems, " segundos");
-    gtk_label_set_text(GTK_LABEL(tiempo_semaforos), timeSems);
-    gtk_label_set_xalign(tiempo_semaforos,0.0);
-    gtk_widget_set_size_request(tiempo_semaforos, 10, 30);
-    gtk_grid_attach(GTK_GRID(grid), tiempo_semaforos, 0, 2, 1, 1);
+    //////////////////// Tiempo por semáforo huecos //////////////////////////////
+    tiempo_semaforos_huecos = gtk_label_new("");
+    char th_number[20];
+    sprintf(th_number, "%lf", timeHuecos);
+    char timeSemHuecos[150];
+    bzero(timeSemHuecos, 150);
+    strcat(timeSemHuecos, "Tiempo total por semáforo huecos: ");
+    strcat(timeSemHuecos, th_number);
+    strcat(timeSemHuecos, " segundos");
+    gtk_label_set_text(GTK_LABEL(tiempo_semaforos_huecos), timeSemHuecos);
+    gtk_label_set_xalign(tiempo_semaforos_huecos,0.0);
+    gtk_widget_set_size_request(tiempo_semaforos_huecos, 10, 30);
+    gtk_grid_attach(GTK_GRID(grid), tiempo_semaforos_huecos, 0, 2, 1, 1);
+
+    //////////////////// Tiempo por semáforo llenos //////////////////////////////
+    tiempo_semaforos_llenos = gtk_label_new("");
+    char tl_number[20];
+    sprintf(tl_number, "%lf", timeLlenos);
+    char timeSemLlenos[150];
+    bzero(timeSemLlenos, 150);
+    strcat(timeSemLlenos, "Tiempo total por semáforo llenos: ");
+    strcat(timeSemLlenos, tl_number);
+    strcat(timeSemLlenos, " segundos");
+    gtk_label_set_text(GTK_LABEL(tiempo_semaforos_llenos), timeSemLlenos);
+    gtk_label_set_xalign(tiempo_semaforos_llenos,0.0);
+    gtk_widget_set_size_request(tiempo_semaforos_llenos, 10, 30);
+    gtk_grid_attach(GTK_GRID(grid), tiempo_semaforos_llenos, 0, 3, 1, 1);
 
     ///////////////// Datos transferidos /////////////////////////////////////
     datos_transferidos = gtk_label_new("");
@@ -160,7 +202,7 @@ int main(int argc, char **argv){
     gtk_label_set_text(GTK_LABEL(datos_transferidos), encoData);
     gtk_label_set_xalign(datos_transferidos,0.0);
     gtk_widget_set_size_request(datos_transferidos, 10, 30);
-    gtk_grid_attach(GTK_GRID(grid), datos_transferidos, 0, 3, 1, 1);
+    gtk_grid_attach(GTK_GRID(grid), datos_transferidos, 0, 4, 1, 1);
 
     ////////////////////// KERNEL ///////////////////////////////////////////////
     tiempo_kernel = gtk_label_new("");
@@ -174,7 +216,7 @@ int main(int argc, char **argv){
     gtk_label_set_text(GTK_LABEL(tiempo_kernel), timeKernel);
     gtk_label_set_xalign(tiempo_kernel,0.0);
     gtk_widget_set_size_request(tiempo_kernel, 10, 30);
-    gtk_grid_attach(GTK_GRID(grid), tiempo_kernel, 0, 4, 1, 1);
+    gtk_grid_attach(GTK_GRID(grid), tiempo_kernel, 0, 5, 1, 1);
 
     ////////////////// Cantidad de pixeles mayores a 175 /////////////////////
     cantidad_pixeles = gtk_label_new("");
@@ -187,7 +229,7 @@ int main(int argc, char **argv){
     gtk_label_set_text(GTK_LABEL(cantidad_pixeles), pixeles);
     gtk_label_set_xalign(cantidad_pixeles,0.0);
     gtk_widget_set_size_request(cantidad_pixeles, 10, 30);
-    gtk_grid_attach(GTK_GRID(grid), cantidad_pixeles, 0, 5, 1, 1);
+    gtk_grid_attach(GTK_GRID(grid), cantidad_pixeles, 0, 6, 1, 1);
 
     gtk_widget_show_all(window);
     gtk_main();
