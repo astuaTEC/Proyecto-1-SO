@@ -43,7 +43,7 @@ typedef struct
 } pixelInfo;
 
 typedef struct {
-    int counter, readCounter, pixelsGT175, encoderData;
+    int counter, readCounter, pixelsGT175, encoderData, flagRunnig;
     time_t start, end;
     time_t startK, endK;
     double cpu_time_used;
@@ -106,12 +106,16 @@ int main(int argc, char *argv[]){
     gsl_matrix *matrix = getMatrixFromImage(imgName);
 
     char ch;
+    stats->flagRunnig = 1;
     int i = 0, value;
     int maxRows = matrix->size1;
     int maxCols = matrix->size2;
     stepTime *= 1000; // to pass millis to micros
     for(int row = 0; row < maxRows; row++){
         for(int col = 0; col < maxCols; col++){
+
+            if(!stats->flagRunnig) break;
+
             if( mode == 1){
                 printf("Enter any character: ");
                 //read a single character

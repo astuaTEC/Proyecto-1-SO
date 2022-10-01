@@ -51,7 +51,7 @@ typedef struct
 } pixelInfo;
 
 typedef struct {
-    int counter, readCounter, pixelsGT175, encoderData;
+    int counter, readCounter, pixelsGT175, encoderData, flagRunnig;
     time_t start, end;
     time_t startK, endK;
     double cpu_time_used;
@@ -68,7 +68,10 @@ int key, length, mode, stepTime;
 sem_t *llenos = NULL, *huecos = NULL;
 pixelInfo *pixels;
 statsInfo *stats;
-int i = 0;
+int i = 0, flagRunnig;
+
+// Define the window
+GtkWidget *window;
 
 void setrgb(guchar *a, int row, int col, int stride,
             guchar bw)
@@ -84,7 +87,9 @@ void free_pixels(guchar *pixelsIn, gpointer data) {
 }
 
 int update_pic(gpointer data) {
- 
+    
+    if(!stats->flagRunnig) { gtk_widget_destroy(GTK_WIDGET(window)); return FALSE; }
+
     ImageData *id = (ImageData*)data;
     GdkPixbuf *pb = gtk_image_get_pixbuf(id->image);
  
@@ -211,7 +216,7 @@ int main(int argc, char *argv[])
     
     id.image = GTK_IMAGE(gtk_image_new_from_pixbuf(pb));
     
-    GtkWidget *window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+    window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
     gtk_window_set_title(GTK_WINDOW(window), "Image");
     gtk_window_set_default_size(GTK_WINDOW(window), WIDTH, HEIGHT);
     gtk_window_set_position(GTK_WINDOW(window), GTK_WIN_POS_CENTER);

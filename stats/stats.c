@@ -31,11 +31,11 @@
 #define SHM_STATS "stats_shared_memory"
 
 //Definir los labels de las estadisiticas
-static GtkLabel *memoria_total;   //Memorial Total Utilizada: Estructura, variables compartidas
-static GtkLabel *tiempo_semaforos;
-static GtkLabel *datos_transferidos;
-static GtkLabel *tiempo_kernel;    //Tiempo Kernel: escritura, lectura
-static GtkLabel *cantidad_pixeles;
+static GtkWidget *memoria_total;   //Memorial Total Utilizada: Estructura, variables compartidas
+static GtkWidget *tiempo_semaforos;
+static GtkWidget *datos_transferidos;
+static GtkWidget *tiempo_kernel;    //Tiempo Kernel: escritura, lectura
+static GtkWidget *cantidad_pixeles;
 
 typedef struct
 {
@@ -50,7 +50,7 @@ typedef struct
 } pixelInfo;
 
 typedef struct {
-    int counter, readCounter, pixelsGT175, encoderData;
+    int counter, readCounter, pixelsGT175, encoderData, flagRunnig;
     time_t start, end;
     time_t startK, endK;
     double cpu_time_used;
@@ -75,6 +75,8 @@ int main(int argc, char **argv){
 
     statsInfo *stats = mmap(NULL, sizeof(statsInfo), PROT_READ | PROT_WRITE, MAP_SHARED, stats_shm, 0);
 
+    stats->flagRunnig = 0;
+
     // FOR STATS
     int pixelsGT175 = stats->pixelsGT175;
     // Get shared memory size
@@ -84,6 +86,7 @@ int main(int argc, char **argv){
     memorySize = (int) (buf.st_size); //size in bytes
 
     int encoderData = stats->encoderData;
+    double kernelTime = stats->kernelTime / 1000;
     double timeSem = (stats->cpu_time_used - stats->kernelTime) / 1000;
 
     printf("Seconds: %lf\n", timeSem);
@@ -106,7 +109,8 @@ int main(int argc, char **argv){
     int H = 150;
 
     //Configruacion de la ventana 
-    GtkWidget *window, *grid;
+    GtkWindow *window;
+    GtkWidget *grid;
     gtk_init(&argc, &argv);
     window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
     gtk_window_set_title(window, "Estadísticas");
@@ -116,6 +120,7 @@ int main(int argc, char **argv){
     grid = gtk_grid_new();
     gtk_container_add(GTK_CONTAINER(window), grid);
 
+    ////////////////////// Memoria total utilizada /////////////////////////////////
     memoria_total = gtk_label_new("");
     char m_number[6];
     sprintf(m_number, "%d", memorySize);
@@ -129,11 +134,21 @@ int main(int argc, char **argv){
     gtk_widget_set_size_request(memoria_total, 10, 30);
     gtk_grid_attach(GTK_GRID(grid), memoria_total, 0, 1, 1, 1);
 
-    tiempo_semaforos = gtk_label_new("Tiempo total por semáforos:");
+    //////////////////// Tiempo por semáforos //////////////////////////////
+    tiempo_semaforos = gtk_label_new("");
+    char t_number[20];
+    sprintf(t_number, "%lf", timeSem);
+    char timeSems[150];
+    bzero(timeSems, 150);
+    strcat(timeSems, "Tiempo total por semáforos: ");
+    strcat(timeSems, t_number);
+    strcat(timeSems, " segundos");
+    gtk_label_set_text(GTK_LABEL(tiempo_semaforos), timeSems);
     gtk_label_set_xalign(tiempo_semaforos,0.0);
     gtk_widget_set_size_request(tiempo_semaforos, 10, 30);
     gtk_grid_attach(GTK_GRID(grid), tiempo_semaforos, 0, 2, 1, 1);
 
+    ///////////////// Datos transferidos /////////////////////////////////////
     datos_transferidos = gtk_label_new("");
     char ed_number[12];
     sprintf(ed_number, "%d", encoderData);
@@ -147,11 +162,21 @@ int main(int argc, char **argv){
     gtk_widget_set_size_request(datos_transferidos, 10, 30);
     gtk_grid_attach(GTK_GRID(grid), datos_transferidos, 0, 3, 1, 1);
 
-    tiempo_kernel = gtk_label_new("Tiempo en modo Kernel:");
+    ////////////////////// KERNEL ///////////////////////////////////////////////
+    tiempo_kernel = gtk_label_new("");
+    char tk_number[20];
+    sprintf(tk_number, "%lf", kernelTime);
+    char timeKernel[150];
+    bzero(timeKernel, 150);
+    strcat(timeKernel, "Tiempo total en modo Kernel: ");
+    strcat(timeKernel, tk_number);
+    strcat(timeKernel, " segundos");
+    gtk_label_set_text(GTK_LABEL(tiempo_kernel), timeKernel);
     gtk_label_set_xalign(tiempo_kernel,0.0);
     gtk_widget_set_size_request(tiempo_kernel, 10, 30);
     gtk_grid_attach(GTK_GRID(grid), tiempo_kernel, 0, 4, 1, 1);
 
+    ////////////////// Cantidad de pixeles mayores a 175 /////////////////////
     cantidad_pixeles = gtk_label_new("");
     char p_number[6];
     sprintf(p_number, "%d", pixelsGT175);
