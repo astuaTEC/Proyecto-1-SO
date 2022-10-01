@@ -54,9 +54,7 @@ typedef struct
     int counter, readCounter, pixelsGT175, encoderData, flagRunnig;
     time_t startHuecos, endHuecos;
     time_t startLlenos, endLlenos;
-    time_t startK, endK;
     double huecos_time, llenos_time;
-    double kernelTime;
 } statsInfo;
 
 
@@ -78,8 +76,7 @@ const char* lastline(char *filename)
         bzero(buffer2, MAX_LENGTH);
         strcpy(buffer2, buffer);
     }
-        
-
+    
     // close the file
     fclose(fp);
 
@@ -125,6 +122,8 @@ int main(int argc, char **argv)
         system(commandKillDeco);
     }
 
+    if(decoCount == 0) decoCount = 1;
+
     system("strace -o deco-log.txt -c ../decoder/deco.out --summary-only");
     char subtext[8];
     bzero(subtext, 8);
@@ -140,11 +139,13 @@ int main(int argc, char **argv)
     char commandKillEnco[100];
     while (fgets(buffer2, 20, cmd_pipe2))
     {
-        aux++;
+        encoCount++;
         pid_t pid = strtoul(buffer2, NULL, 10);
         sprintf(commandKillEnco, "kill -2 %d", (int)pid);
         system(commandKillEnco);
     }
+
+    if(encoCount == 0) encoCount = 1;
 
     system("strace -o enco-log.txt -c ../encoder/enco.out --summary-only");
     bzero(subtext, 8);
