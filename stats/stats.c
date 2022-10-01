@@ -30,11 +30,11 @@
 #define SHM_SEMS "sems_shared_memory"
 #define SHM_STATS "stats_shared_memory"
 
-//Definir los labels de las estadisiticas
-static GtkWidget *memoria_total;   //Memorial Total Utilizada: Estructura, variables compartidas
+// Definir los labels de las estadisiticas
+static GtkWidget *memoria_total; // Memorial Total Utilizada: Estructura, variables compartidas
 static GtkWidget *tiempo_semaforos_huecos, *tiempo_semaforos_llenos;
 static GtkWidget *datos_transferidos;
-static GtkWidget *tiempo_kernel;    //Tiempo Kernel: escritura, lectura
+static GtkWidget *tiempo_kernel; // Tiempo Kernel: escritura, lectura
 static GtkWidget *cantidad_pixeles;
 
 typedef struct
@@ -49,7 +49,8 @@ typedef struct
     int col;
 } pixelInfo;
 
-typedef struct {
+typedef struct
+{
     int counter, readCounter, pixelsGT175, encoderData, flagRunnig;
     time_t startHuecos, endHuecos;
     time_t startLlenos, endLlenos;
@@ -59,7 +60,36 @@ typedef struct {
 } statsInfo;
 
 
-int main(int argc, char **argv){
+// https://stackoverflow.com/questions/10476503/how-can-i-select-the-last-line-of-a-text-file-using-c
+const char* lastline(char *filename)
+{
+    FILE *fp = fopen(filename, "r");
+    if (fp == NULL)
+    {
+        printf("Error: could not open file %s", filename);
+        return 1;
+    }
+
+    // reading line by line, max 256 bytes
+    const unsigned MAX_LENGTH = 256;
+    char buffer[MAX_LENGTH], buffer2[MAX_LENGTH];
+
+    while (fgets(buffer, MAX_LENGTH, fp)){
+        bzero(buffer2, MAX_LENGTH);
+        strcpy(buffer2, buffer);
+    }
+        
+
+    // close the file
+    fclose(fp);
+
+    char *aux = buffer2;
+
+    return aux;
+}
+
+int main(int argc, char **argv)
+{
 
     sem_t *llenos = NULL, *huecos = NULL;
 
@@ -69,7 +99,8 @@ int main(int argc, char **argv){
     llenos = sem_open(SEM_NAME_1, O_RDWR); // llenos
     huecos = sem_open(SEM_NAME_2, O_RDWR); // huecos
 
-    if(llenos == SEM_FAILED || huecos == SEM_FAILED || fd_shm == -1 || stats_shm == -1){
+    if (llenos == SEM_FAILED || huecos == SEM_FAILED || fd_shm == -1 || stats_shm == -1)
+    {
         printf("Shared memory or semaphores weren't created...\n");
         return 0;
     }
@@ -78,31 +109,56 @@ int main(int argc, char **argv){
 
     stats->flagRunnig = 0;
 
-    char buffer1[512], buffer2[512], buffer3[512], buffer4[512];
+    double kernelTime;
+
+    char buffer1[20], buffer2[20];
     FILE *cmd_pipe1 = popen("pidof enco.out", "r");
     FILE *cmd_pipe2 = popen("pidof deco.out", "r");
+    int encoCount = 0, decoCount = 0;
 
-    FILE *straceDeco;
-    char commandDeco[100], commandKillDeco[100];
-    while (fgets(buffer1, 512, cmd_pipe1)){
-        printf("%s", buffer1);
+    char commandKillDeco[100];
+    while (fgets(buffer1, 20, cmd_pipe1))
+    {
+        decoCount++;
         pid_t pid = strtoul(buffer1, NULL, 10);
-        sprintf(commandDeco, "sudo strace -p %d --summary-only", (int)pid);
-        straceDeco = popen(commandDeco, "r");
-        sprintf(commandKillDeco, "sudo kill -9 %s", buffer1);
+        sprintf(commandKillDeco, "kill -2 %d", (int)pid);
         system(commandKillDeco);
-        while (fgets(buffer3, 512, straceDeco)){
-            printf("%s", buffer3);
-        }
-        pclose( straceDeco );
     }
 
-    while (fgets(buffer2, 512, cmd_pipe2)){
-        printf("%s", buffer2);
+    system("strace -o deco-log.txt -c ../decoder/deco.out --summary-only");
+    char subtext[8];
+    bzero(subtext, 8);
+    char* lastLine = lastline("deco-log.txt");
+    strncpy(subtext, &lastLine[10],7);
+    char *comma;
+    comma = strchr(subtext,',');
+    *comma = '.';
+    double res = atof(subtext);
+    printf("Last line %lf\n", res);
+    kernelTime += res*decoCount;
+
+    char commandKillEnco[100];
+    while (fgets(buffer2, 20, cmd_pipe2))
+    {
+        aux++;
+        pid_t pid = strtoul(buffer2, NULL, 10);
+        sprintf(commandKillEnco, "kill -2 %d", (int)pid);
+        system(commandKillEnco);
     }
 
-    pclose( cmd_pipe1 );
-    pclose( cmd_pipe2 );   
+    system("strace -o enco-log.txt -c ../encoder/enco.out --summary-only");
+    bzero(subtext, 8);
+    bzero(lastLine, 256);
+    lastLine = lastline("enco-log.txt");
+    strncpy(subtext, &lastLine[10],7);
+    comma = strchr(subtext,',');
+    *comma = '.';
+    res = atof(subtext);
+    printf("Last line %lf\n", res);
+    kernelTime += res*encoCount;
+    
+    pclose(cmd_pipe1);
+    pclose(cmd_pipe2);
 
     // FOR STATS
     int pixelsGT175 = stats->pixelsGT175;
@@ -110,17 +166,15 @@ int main(int argc, char **argv){
     int memorySize;
     struct stat buf;
     fstat(fd_shm, &buf);
-    memorySize = (int) (buf.st_size); //size in bytes
+    memorySize = (int)(buf.st_size); // size in bytes
 
     int encoderData = stats->encoderData;
-    double kernelTime = stats->kernelTime / 1000;
     double timeHuecos = stats->huecos_time / 1000;
     double timeLlenos = stats->llenos_time / 1000;
 
-    printf("Seconds: %lf\n", timeHuecos);
-    printf("Kernel: %lf\n", stats->kernelTime/1000);
-
     printf("Freeing memory and closing the semaphores...\n");
+
+    munmap(stats, sizeof(statsInfo));
 
     sem_close(llenos);
     sem_close(huecos);
@@ -136,7 +190,7 @@ int main(int argc, char **argv){
     int W = 400;
     int H = 180;
 
-    //Configruacion de la ventana 
+    // Configruacion de la ventana
     GtkWindow *window;
     GtkWidget *grid;
     gtk_init(&argc, &argv);
@@ -158,7 +212,7 @@ int main(int argc, char **argv){
     strcat(memSize, m_number);
     strcat(memSize, " bytes");
     gtk_label_set_text(GTK_LABEL(memoria_total), memSize);
-    gtk_label_set_xalign(memoria_total,0.0);
+    gtk_label_set_xalign(memoria_total, 0.0);
     gtk_widget_set_size_request(memoria_total, 10, 30);
     gtk_grid_attach(GTK_GRID(grid), memoria_total, 0, 1, 1, 1);
 
@@ -172,7 +226,7 @@ int main(int argc, char **argv){
     strcat(timeSemHuecos, th_number);
     strcat(timeSemHuecos, " segundos");
     gtk_label_set_text(GTK_LABEL(tiempo_semaforos_huecos), timeSemHuecos);
-    gtk_label_set_xalign(tiempo_semaforos_huecos,0.0);
+    gtk_label_set_xalign(tiempo_semaforos_huecos, 0.0);
     gtk_widget_set_size_request(tiempo_semaforos_huecos, 10, 30);
     gtk_grid_attach(GTK_GRID(grid), tiempo_semaforos_huecos, 0, 2, 1, 1);
 
@@ -186,7 +240,7 @@ int main(int argc, char **argv){
     strcat(timeSemLlenos, tl_number);
     strcat(timeSemLlenos, " segundos");
     gtk_label_set_text(GTK_LABEL(tiempo_semaforos_llenos), timeSemLlenos);
-    gtk_label_set_xalign(tiempo_semaforos_llenos,0.0);
+    gtk_label_set_xalign(tiempo_semaforos_llenos, 0.0);
     gtk_widget_set_size_request(tiempo_semaforos_llenos, 10, 30);
     gtk_grid_attach(GTK_GRID(grid), tiempo_semaforos_llenos, 0, 3, 1, 1);
 
@@ -200,7 +254,7 @@ int main(int argc, char **argv){
     strcat(encoData, ed_number);
     strcat(encoData, " bytes");
     gtk_label_set_text(GTK_LABEL(datos_transferidos), encoData);
-    gtk_label_set_xalign(datos_transferidos,0.0);
+    gtk_label_set_xalign(datos_transferidos, 0.0);
     gtk_widget_set_size_request(datos_transferidos, 10, 30);
     gtk_grid_attach(GTK_GRID(grid), datos_transferidos, 0, 4, 1, 1);
 
@@ -214,7 +268,7 @@ int main(int argc, char **argv){
     strcat(timeKernel, tk_number);
     strcat(timeKernel, " segundos");
     gtk_label_set_text(GTK_LABEL(tiempo_kernel), timeKernel);
-    gtk_label_set_xalign(tiempo_kernel,0.0);
+    gtk_label_set_xalign(tiempo_kernel, 0.0);
     gtk_widget_set_size_request(tiempo_kernel, 10, 30);
     gtk_grid_attach(GTK_GRID(grid), tiempo_kernel, 0, 5, 1, 1);
 
@@ -227,7 +281,7 @@ int main(int argc, char **argv){
     strcat(pixeles, "Cantidad de Pixeles mayores a 175: ");
     strcat(pixeles, p_number);
     gtk_label_set_text(GTK_LABEL(cantidad_pixeles), pixeles);
-    gtk_label_set_xalign(cantidad_pixeles,0.0);
+    gtk_label_set_xalign(cantidad_pixeles, 0.0);
     gtk_widget_set_size_request(cantidad_pixeles, 10, 30);
     gtk_grid_attach(GTK_GRID(grid), cantidad_pixeles, 0, 6, 1, 1);
 

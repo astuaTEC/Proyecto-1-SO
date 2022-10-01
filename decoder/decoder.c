@@ -110,7 +110,7 @@ int update_pic(gpointer data) {
     stats->startLlenos = millis();
     sem_wait(llenos); // down a un lleno
     stats->endLlenos = millis();
-    stats->llenos_time = stats->endLlenos - stats->startLlenos;
+    stats->llenos_time += stats->endLlenos - stats->startLlenos;
 
     if (strlen(myImg) == 0 && pixels[i].initPixel == 1)
     {
@@ -246,6 +246,7 @@ int main(int argc, char *argv[])
     wait(NULL);
 
     munmap(pixels, sizeof(pixelInfo)*length);
+    munmap(stats, sizeof(statsInfo));
 
     return 0;
 }

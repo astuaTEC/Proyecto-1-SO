@@ -183,17 +183,12 @@ int main(int argc, char *argv[]){
         }
     }
 
-    // pid_t id = getpid();
-    // char command[100];
-    // sprintf(command, "sudo strace -p %d --summary-only", (int)id);
-    // printf("%s\n", command);
-    // system(command);
-    // printf("Pid %d \n", (int)id);
-    printf("Enter any character to exit: ");
+    printf("Please press Enter to exit: ");
     //read a single character
     ch = fgetc(stdin);
     
     munmap(pixels, sizeof(pixelInfo)*chunkSize);
+    munmap(stats, sizeof(statsInfo));
 
     return 0;
 }
