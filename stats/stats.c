@@ -109,8 +109,8 @@ int main(int argc, char **argv)
     double kernelTime;
 
     char buffer1[20], buffer2[20];
-    FILE *cmd_pipe1 = popen("pidof enco.out", "r");
-    FILE *cmd_pipe2 = popen("pidof deco.out", "r");
+    FILE *cmd_pipe1 = popen("pgrep enco.out", "r");
+    FILE *cmd_pipe2 = popen("pgrep deco.out", "r");
     int encoCount = 0, decoCount = 0;
 
     char commandKillDeco[100];
